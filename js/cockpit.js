@@ -87,7 +87,9 @@ export class Cockpit {
     const tyre = new THREE.CylinderGeometry(0.36, 0.36, 0.38, 24);
     tyre.rotateZ(Math.PI / 2);
     for (const sx of [-1, 1]) {
+      const steer = new THREE.Group();
       const w = new THREE.Group();
+      steer.add(w);
       w.add(new THREE.Mesh(tyre, mat(0x151618)));
       // 回転がわかるように溝とホイールのスポーク
       for (let i = 0; i < 6; i++) {
@@ -99,19 +101,15 @@ export class Cockpit {
       const band = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.025, 4, 24).rotateY(Math.PI / 2), mat(0xd8262e));
       band.position.x = sx * -0.195;
       w.add(band);
-      w.position.set(sx * 0.86, -0.64, -2.1);
-      g.add(w);
-      this.wheels.push(w);
+      steer.position.set(sx * 0.86, -0.64, -2.1);
+      g.add(steer);
+      this.wheels.push({ steer, w });
     }
     // フロントウイング (下の方にちらっと見える)
     const fw = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.04, 0.45), accent);
     fw.position.set(0, -0.88, -3.1);
     g.add(fw);
-    // ヘイロー: 中央の柱と頭上の輪
-    const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.024, 0.6, 10), carbon);
-    strut.position.set(0, -0.09, -0.575);
-    strut.rotation.x = 0.43;
-    g.add(strut);
+    // ヘイロー: 頭上の輪 (中央の柱は視界の邪魔なので付けない)
     const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.02, 8, 24, Math.PI), carbon);
     hoop.rotation.x = -Math.PI / 2;
     hoop.position.set(0, 0.24, -0.01);
@@ -168,11 +166,11 @@ export class Cockpit {
 
   update(dt, o) {
     // o: { steer, wheelSpin, gear, kmh, rpmK, shake: {x,y}, roll, dark }
-    this.wheel.rotation.z = -o.steer * 1.4;
-    for (const w of this.wheels) {
-      w.children[0].rotation.x = 0;
-      w.rotation.x -= o.wheelSpin * dt;
-      w.rotation.y = -o.steer * 0.35;
+    // 左 (steer > 0) に切るとハンドルは反時計回り、前輪は左を向く
+    this.wheel.rotation.z = o.steer * 1.4;
+    for (const { steer, w } of this.wheels) {
+      steer.rotation.y = o.steer * 0.3;
+      w.rotation.x = (w.rotation.x - o.wheelSpin * dt) % (Math.PI * 2);
     }
     this.group.position.set(o.shake.x * 0.4, o.shake.y * 0.4, 0);
     this.group.rotation.z = o.roll;

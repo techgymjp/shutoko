@@ -202,7 +202,7 @@ function startRace() {
       model: null,
     };
     if (!isP) {
-      car.model = makeF1(team);
+      car.model = makeF1(team, { night: T.night });
       scene.add(car.model);
     }
     racers.push(car);
@@ -212,8 +212,14 @@ function startRace() {
   const effects = new Effects(scene);
   const traffic = new Traffic(scene, course, T.night, r);
 
+  // 夜は自分のヘッドライトで前を照らす
+  let headlight = null;
+  if (T.night) {
+    headlight = new THREE.SpotLight(0xfff2dc, 900, 220, 0.42, 0.55, 1.6);
+    scene.add(headlight, headlight.target);
+  }
   G = {
-    def, course, scene, world, racers, player, cockpit, effects, traffic, T,
+    def, course, scene, world, racers, player, cockpit, effects, traffic, T, headlight,
     mode: 'countdown', t: 0, raceT: 0, countdown: 0, lightsOut: 5.1 + Math.random() * 1.2,
     startS, goalS,
     shake: 0, flash: 0, red: 0, slowmo: 0, roll: 0, jolt: 0,
@@ -458,7 +464,10 @@ function updateAI(dt) {
     const gap = car.s - P.s;
     // 自分より先に行きすぎた車は少し手を抜き、置いていかれた車は少し頑張る
     if (gap > 120) vt *= 1 - Math.min(0.09, (gap - 120) / 2500);
-    else if (gap < -150) vt *= 1 + Math.min(0.05, (-gap - 150) / 2500);
+    else if (gap < 0 && G.rank === 1 && G.mode === 'race') {
+      // 自分がトップの時は後続が本気で追い上げてくる (離れるほど速い)
+      vt *= 1.03 + Math.min(0.06, -gap / 1800);
+    } else if (gap < -150) vt *= 1 + Math.min(0.05, (-gap - 150) / 2500);
     const slip = slipFor(car);
     vt += slip * 8;
     // コーナー手前で減速
@@ -577,9 +586,11 @@ function updateRanks() {
   list.forEach((r, i) => { r.rank = i + 1; });
   G.order = list;
   G.rank = G.player.rank;
+  G.otT = (G.otT || 0) - (G.dt || 0);
   if (G.mode === 'race' && G.rank < G.prevRank) {
     G.overtakes += G.prevRank - G.rank;
-    showAlert(`OVERTAKE!  P${G.rank}`, 'good', 900);
+    // 抜きつ抜かれつの時に表示が出すぎないよう 2.5 秒あける
+    if (G.otT <= 0) { showAlert(`OVERTAKE!  P${G.rank}`, 'good', 900); G.otT = 2.5; }
   }
   G.prevRank = G.rank;
 }
@@ -683,6 +694,10 @@ function updateCamera(dt) {
   // ロール: コーナーで体が傾く + 衝突
   G.roll = lerp(G.roll, clamp(-P.v * P.v * camP.k * 0.0016, -0.06, 0.06) + G.steer * -0.012 + G.jolt * 0.4, Math.min(1, dt * 4));
   camera.rotateZ(G.roll);
+  if (G.headlight) {
+    G.headlight.position.set(camP.x, camP.y + 0.7, camP.z);
+    G.headlight.target.position.set(camP.x + dx * 40, camP.y - 1.5, camP.z + dz * 40);
+  }
   // 速度で視野が広がる (酷道168 と同じ考え方)
   const fovBase = camera.aspect < 1 ? 88 : 68;
   const fov = fovBase + sp * sp * 22 + G.boost * 20 + G.slip * 4;
@@ -707,7 +722,7 @@ function placeCars(dt) {
     m.rotation.set(0, yawOf(rp.a + slide + r.spin), 0);
     for (const w of m.wheels) w.rotation.x -= (r.v / 0.36) * dt;
     // 雨用ライト (ブレーキ中・トンネル内で点灯)
-    const lit = c.inTunnel(r.s) || (Math.floor(G.t * 8) % 2 === 0 && r.v < 30);
+    const lit = G.T.night || c.inTunnel(r.s) || (Math.floor(G.t * 8) % 2 === 0 && r.v < 30);
     m.rainLight.material.color.setHex(lit ? 0xff2020 : 0x400000);
   }
 }
@@ -730,6 +745,18 @@ function updateHUD(dt) {
   $('hud-gear').textContent = kmh < 2 && G.mode !== 'race' ? 'N' : gear;
   $('rpm-bar').style.width = (clamp((G.rpm - 4000) / 8500, 0, 1) * 100).toFixed(1) + '%';
   $('hud-pos').textContent = G.rank;
+  // トップの時は後続との差を出し、迫ってきたら知らせる
+  const behind = G.order && G.rank === 1 && !P.finished ? G.order[1] : null;
+  $('row-behind').hidden = !behind;
+  if (behind) {
+    const gapM = P.s - behind.s;
+    $('hud-behind').textContent = '+' + (gapM / Math.max(20, P.v)).toFixed(1);
+    G.warnT = (G.warnT || 0) - dt;
+    if (gapM < 25 && G.warnT <= 0 && G.mode === 'race') {
+      showAlert('後続が迫る!', '', 900);
+      G.warnT = 6;
+    }
+  }
   $('hud-time').textContent = fmt(P.finished ? P.time : G.raceT);
   const remain = Math.max(0, G.goalS - P.s);
   $('hud-remain').textContent = (remain / 1000).toFixed(1);
@@ -822,7 +849,12 @@ function frame(now, noRender) {
   });
   // 音
   const racing = G.mode === 'race' || G.mode === 'countdown';
-  Sound.engine(G.rpm, (input.accel && racing) ? 1 : 0.15, P.v / VMAX, G.mode !== 'result');
+  if (G.mode === 'result') {
+    // 結果画面では音を止めたまま (ここで鳴らし直さない)
+    if (!noRender) render();
+    return;
+  }
+  Sound.engine(G.rpm, (input.accel && racing) ? 1 : 0.15, P.v / VMAX, true);
   Sound.skid(G.skid || 0);
   Sound.scrape(G.scraping > 0 ? 1 : 0);
   let nearest = null, nd = 1e9;
@@ -831,7 +863,7 @@ function frame(now, noRender) {
     const d = Math.hypot(r.s - P.s, (r.x - P.x) * 2);
     if (d < nd) { nd = d; nearest = r; }
   }
-  if (nearest) Sound.rival(nd, nearest.v - P.v, (P.x - nearest.x) * 0.5);
+  if (nearest) Sound.rival(nd, nearest.v, nearest.v - P.v, (P.x - nearest.x) * 0.5);
   if (!noRender) render();
 }
 

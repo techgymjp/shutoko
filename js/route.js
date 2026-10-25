@@ -124,11 +124,13 @@ export class Course {
   cell(x, z) { return Math.floor(x / 100) + ',' + Math.floor(z / 100); }
 
   // 中心線までの最短距離 (おおよそ)
-  distToRoad(x, z) {
+  // range: 探す範囲 (m)。これより遠い時は大きな値を返す
+  distToRoad(x, z, range = 100) {
     const cx = Math.floor(x / 100), cz = Math.floor(z / 100);
+    const n = Math.ceil(range / 100);
     let best = 1e9;
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dz = -1; dz <= 1; dz++) {
+    for (let dx = -n; dx <= n; dx++) {
+      for (let dz = -n; dz <= n; dz++) {
         const list = this.grid.get((cx + dx) + ',' + (cz + dz));
         if (!list) continue;
         for (const i of list) {

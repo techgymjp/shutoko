@@ -111,12 +111,14 @@ export const Sound = {
     if (!ctx) return;
     scrape.g.gain.setTargetAtTime(Math.min(0.35, amount * 0.35), ctx.currentTime, 0.03);
   },
-  rival(dist, rel, pan) {
+  // dist: 距離 m, v: 相手の速度 m/s, rel: 相手 − 自分 の速度
+  rival(dist, v, rel, pan) {
     if (!ctx) return;
     const t = ctx.currentTime;
-    const vol = dist < 60 ? (1 - dist / 60) * 0.12 : 0;
+    // 止まっている車は鳴らさない (一定の高さの音が鳴り続けないように)
+    const vol = dist < 60 && v > 8 ? (1 - dist / 60) * Math.min(1, v / 40) * 0.1 : 0;
     rival.g.gain.setTargetAtTime(vol, t, 0.05);
-    rival.o.frequency.setTargetAtTime(520 * (1 + rel * 0.004), t, 0.05);
+    rival.o.frequency.setTargetAtTime((180 + v * 5) * (1 + rel * 0.003), t, 0.05);
     if (rival.pan) rival.pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, pan)), t, 0.05);
   },
   silence() {

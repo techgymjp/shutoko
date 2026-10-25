@@ -19,6 +19,40 @@ const AHEAD = 2600;
 const BEHIND = 250;
 export const yawOf = (a) => a - Math.PI / 2;
 
+// 建物の色 (タイル・塗装・ガラス)。テクスチャに掛け合わせる
+const FACADE = [0xf2ece0, 0xe9dcc4, 0xd9c7a8, 0xc98f6e, 0xb86b52, 0xe8e2d8, 0xd7d9dc, 0xf0d8c8, 0xc9d8e2, 0xe6e0b8, 0xb0b8c0, 0xf4f0ea, 0xd8b88f, 0xa8c4b0];
+const GLASS = [0x9ec4e6, 0x7fb0d8, 0x8fd0d0, 0xa8d0b8, 0xc8b89a, 0xb8c8e0, 0x9aa8c8, 0xd0d8e0, 0x88c0e8];
+const ROOFC = [0x8a9096, 0x6c7378, 0xa7aca8, 0xc0c4c0];
+const AERIAL = 0xd03a2a;
+// 屋上広告 (架空の店・会社)
+const ADS = [
+  ['ラーメン', '#c8102e', '#fff'], ['焼肉', '#1a1a1a', '#ffcc00'], ['カラオケ', '#7b2cbf', '#fff'], ['不動産', '#0b5fa5', '#fff'],
+  ['英会話', '#ff6b00', '#fff'], ['TECH GYM', '#0b1a2e', '#ff9a3c'], ['首都高F1', '#e4007f', '#fff'], ['お茶', '#2e7d32', '#fff'],
+  ['家電', '#ffd400', '#d00'], ['ビール', '#f4a300', '#3a1a00'], ['温泉', '#00897b', '#fff'], ['SALE', '#e53935', '#fff'],
+  ['寿司', '#fafafa', '#c8102e'], ['ホテル', '#283593', '#ffd54f'], ['眼鏡', '#00acc1', '#fff'], ['プログラミング', '#111', '#3dff8a'],
+];
+function adAtlas() {
+  return canvasTex('ads', 1024, 1024, (g, w, h) => {
+    const cw = w / 4, ch = h / 4;
+    ADS.forEach(([txt, bg, fg], i) => {
+      const x = (i % 4) * cw, y = Math.floor(i / 4) * ch;
+      g.fillStyle = '#555';
+      g.fillRect(x, y, cw, ch);
+      g.fillStyle = bg;
+      g.fillRect(x + 6, y + 40, cw - 12, ch - 80);
+      g.fillStyle = fg;
+      let size = 64;
+      g.font = `900 ${size}px "Noto Sans JP", sans-serif`;
+      while (g.measureText(txt).width > cw - 30 && size > 20) { size -= 4; g.font = `900 ${size}px "Noto Sans JP", sans-serif`; }
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(txt, x + cw / 2, y + ch / 2 + 2);
+    });
+    g.fillStyle = '#4a4f55';
+    g.fillRect(0, 0, 8, 8);
+  });
+}
+
 // ---------------- 時間帯 ----------------
 export const THEMES = {
   day: {
@@ -40,6 +74,8 @@ export const THEMES = {
     ground: '#2a2b30', lamp: 0xffc070,
   },
 };
+
+const themeKeyCloud = (T) => (T.skyBottom === THEMES.dusk.skyBottom ? 0xffc8a8 : 0xffffff);
 
 // ---------------- ジオメトリ補助 ----------------
 class Geo {
@@ -74,6 +110,24 @@ class Geo {
     }
     // 屋上 (UV は窓のない所)
     this.quad(P(-hw, h, hd), P(hw, h, hd), P(hw, h, -hd), P(-hw, h, -hd), [0, 1, 0], [0.01, 0.01, 0.02, 0.01, 0.02, 0.02, 0.01, 0.02], color);
+  }
+  // 木の葉 (上下2つの角錐を合わせた形)
+  diamond(cx, cy, cz, w, h, yaw, color) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const ring = [[1, 0], [0.5, 0.87], [-0.5, 0.87], [-1, 0], [-0.5, -0.87], [0.5, -0.87]].map(([x, z]) => [cx + (x * c + z * s) * w / 2, cy + h * 0.4, cz + (-x * s + z * c) * w / 2]);
+    const top = [cx, cy + h, cz], bot = [cx, cy, cz];
+    for (let i = 0; i < 6; i++) {
+      const a = ring[i], b = ring[(i + 1) % 6];
+      for (const [tip, up] of [[top, 1], [bot, -1]]) {
+        const ux = b[0] - a[0], uz = b[2] - a[2];
+        const mx = (a[0] + b[0]) / 2 - cx, mz = (a[2] + b[2]) / 2 - cz;
+        const l = Math.hypot(mx, mz) || 1;
+        const n = [mx / l * 0.8, up * 0.6, mz / l * 0.8];
+        if (up > 0) this.quad(a, b, tip, tip, n, null, color);
+        else this.quad(b, a, tip, tip, n, null, color);
+        void ux; void uz;
+      }
+    }
   }
   mesh(material) {
     const g = new THREE.BufferGeometry();
@@ -157,6 +211,7 @@ export class World {
       bldg1: new THREE.MeshLambertMaterial({ map: windowTex(night, 1), vertexColors: true }),
       tree: new THREE.MeshLambertMaterial({ vertexColors: true }),
       sign: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      board: new THREE.MeshBasicMaterial({ map: adAtlas(), color: night ? 0xffffff : 0xe8e8e8 }),
     };
     if (night) {
       for (const k of ['bldg0', 'bldg1']) {
@@ -213,6 +268,33 @@ export class World {
     this.sun.scale.setScalar(T.night ? 500 : 1400);
     this.sunDir = new THREE.Vector3(...T.sunDir).normalize();
     scene.add(this.sun);
+    // 雲 (昼・夕暮れ)
+    if (!T.night) {
+      const cloudTex = canvasTex('cloud', 256, 128, (g, w, h) => {
+        const rr = rng(11);
+        for (let i = 0; i < 18; i++) {
+          const x = w * (0.15 + rr() * 0.7), y = h * (0.45 + rr() * 0.25), rad = 20 + rr() * 34;
+          const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+          gr.addColorStop(0, 'rgba(255,255,255,0.85)');
+          gr.addColorStop(1, 'rgba(255,255,255,0)');
+          g.fillStyle = gr;
+          g.fillRect(0, 0, w, h);
+        }
+      });
+      const cm = new THREE.SpriteMaterial({ map: cloudTex, fog: false, depthWrite: false, transparent: true, color: themeKeyCloud(T), opacity: 0.9 });
+      this.clouds = new THREE.Group();
+      const rr = rng(5);
+      for (let i = 0; i < 45; i++) {
+        const sp = new THREE.Sprite(cm);
+        const a = rr() * Math.PI * 2, d = 2500 + rr() * 9000;
+        sp.position.set(Math.cos(a) * d, 700 + rr() * 1100, Math.sin(a) * d);
+        const sc = 900 + rr() * 1600;
+        sp.scale.set(sc, sc * 0.45, 1);
+        this.clouds.add(sp);
+      }
+      this.clouds.renderOrder = -9;
+      scene.add(this.clouds);
+    }
     // 星
     if (T.night) {
       const sp = [];
@@ -281,11 +363,33 @@ export class World {
         o.traverse((m) => { if (m.material) m.material.fog = false; });
       } else {
         o.rotation.y = c.at(L.s).a - Math.PI / 2;
+        // 線形は概略なので、実際の位置だと道路にかかる建物がある。道路から離して置く
+        [x, z] = this.clearOfRoad(o, L);
+        L.x = x;
+        L.z = z;
       }
       o.position.set(x, 0, z);
       this.scene.add(o);
       if (T.night && !L.far) this.addAviationLight(o, x, z);
     }
+  }
+
+  clearOfRoad(o, L) {
+    const c = this.course;
+    const box = new THREE.Box3().setFromObject(o);
+    const r = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+    const need = r + 12;
+    if (c.distToRoad(L.x, L.z, need + 30) > need + 15) return [L.x, L.z];
+    const p = c.at(L.s);
+    const off = (L.x - p.x) * p.lx + (L.z - p.z) * p.lz;
+    // 右側 (−) には対向車線がある
+    const side = off >= 0 ? 1 : -1;
+    for (let d = 0; d < 600; d += 5) {
+      const o2 = side > 0 ? Math.max(off, need) + d : Math.min(off, -need - 12) - d;
+      const q = c.at(L.s, o2);
+      if (c.distToRoad(q.x, q.z, need + 30) > need + (side > 0 ? 0 : 12)) return [q.x, q.z];
+    }
+    return [L.x, L.z];
   }
 
   addAviationLight(o, x, z) {
@@ -329,6 +433,7 @@ export class World {
     this.sky.position.copy(camPos);
     this.sun.position.copy(camPos).addScaledVector(this.sunDir, 15000);
     if (this.stars) this.stars.position.copy(camPos);
+    if (this.clouds) this.clouds.position.set(camPos.x * 0.7, 0, camPos.z * 0.7);
     this.buildAviation();
     if (this.avPoints) this.avPoints.material.opacity = Math.sin(t * 3) > 0 ? 1 : 0.15;
   }
@@ -497,7 +602,7 @@ export class World {
   buildCity(g, k, s0, s1) {
     const c = this.course;
     const r = rng(1000 + k * 7919);
-    const b0 = new Geo(), b1 = new Geo(), trees = new Geo();
+    const b0 = new Geo(), b1 = new Geo(), trees = new Geo(), boards = new Geo(), roof = new Geo();
     const col = new THREE.Color();
     const p = {};
     const ROWS = [30, 58, 92, 130, 175, 230, 300, 380];
@@ -525,20 +630,42 @@ export class World {
             if (r() < 0.25 + dist.w * 0.6) h = Math.max(h, lo + (hi - lo) * r() * (0.4 + dist.w * 0.6));
           }
           h = Math.round(h / 3.5) * 3.5 + 1;
-          const style = h > 50 || r() < 0.25 ? 1 : 0;
-          const tone = 0.72 + r() * 0.32;
-          if (style) col.setRGB(tone * 0.95, tone, tone * 1.03);
-          else {
-            const hue = r();
-            col.setRGB(tone * (hue < 0.3 ? 1.0 : 0.93), tone * (hue < 0.3 ? 0.93 : 0.93), tone * (hue < 0.3 ? 0.84 : 0.92));
-          }
-          (style ? b1 : b0).box(p.x, 0, p.z, w, h, d, yawOf(p.a) + (r() - 0.5) * 0.1, col, true);
+          const style = h > 50 || r() < 0.3 ? 1 : 0;
+          const pal = style ? GLASS : FACADE;
+          col.set(pal[Math.floor(r() * pal.length)]);
+          col.multiplyScalar(0.85 + r() * 0.25);
+          const yaw = yawOf(p.a) + (r() - 0.5) * 0.1;
+          (style ? b1 : b0).box(p.x, 0, p.z, w, h, d, yaw, col, true);
+          // 屋上: 広告看板・給水塔・アンテナ
+          const roll = r();
+          if (ri < 3 && h < 70 && roll < 0.3) this.billboard(boards, r, p, side, w, d, h, yaw);
+          else if (roll < 0.55) roof.box(p.x + (r() - 0.5) * w * 0.4, h, p.z + (r() - 0.5) * d * 0.4, 3 + r() * 4, 2 + r() * 2.5, 3 + r() * 4, yaw, ROOFC[Math.floor(r() * ROOFC.length)]);
+          if (h > 60 && r() < 0.5) roof.box(p.x, h, p.z, 0.6, 8 + r() * 10, 0.6, 0, AERIAL);
         }
       }
     }
     if (b0.n) g.add(b0.mesh(this.M.bldg0));
     if (b1.n) g.add(b1.mesh(this.M.bldg1));
     if (trees.n) g.add(trees.mesh(this.M.tree));
+    if (boards.n) g.add(boards.mesh(this.M.board));
+    if (roof.n) g.add(roof.mesh(this.M.tree));
+  }
+
+  // 屋上の広告看板 (道路から見える向き)。広告の絵は1枚のテクスチャに 4×4 で並べてある
+  billboard(geo, r, p, side, w, d, h, yaw) {
+    const bw = Math.min(w * 0.9, 10 + r() * 8), bh = bw * 0.36;
+    const k = Math.floor(r() * 16);
+    const u0 = (k % 4) / 4, v0 = 1 - (Math.floor(k / 4) + 1) / 4;
+    const uv = [u0, v0, u0 + 0.25, v0, u0 + 0.25, v0 + 0.25, u0, v0 + 0.25];
+    // 近づいてくる車の方 (後ろ) へ向け、少し道路側へ振る
+    const a = yaw + side * 0.45;
+    const c = Math.cos(a), sn = Math.sin(a);
+    const cx = p.x, cz = p.z, y0 = h + 1.2;
+    const P = (x, y) => [cx + x * c, y0 + y, cz - x * sn];
+    const nrm = [sn, 0, c];
+    geo.quad(P(-bw / 2, 0), P(bw / 2, 0), P(bw / 2, bh), P(-bw / 2, bh), nrm, uv);
+    // 裏側 (骨組みの色)
+    geo.quad(P(bw / 2, 0), P(-bw / 2, 0), P(-bw / 2, bh), P(bw / 2, bh), [-sn, 0, -c], [0.001, 0.001, 0.002, 0.001, 0.002, 0.002, 0.001, 0.002]);
   }
 
   addTrees(geo, r, x, z, n) {
@@ -547,9 +674,14 @@ export class World {
     for (let i = 0; i < n; i++) {
       const tx = x + (r() - 0.5) * 24, tz = z + (r() - 0.5) * 24;
       const h = 6 + r() * 10, w = 4 + r() * 5;
-      leaf.setHSL(0.25 + r() * 0.08, 0.45, night ? 0.08 : 0.24 + r() * 0.1);
+      // 10月の東京: 緑の中に銀杏の黄色と紅葉の赤が混じる
+      const k = r();
+      if (k < 0.18) leaf.setHSL(0.13, 0.85, 0.5);
+      else if (k < 0.28) leaf.setHSL(0.02 + r() * 0.04, 0.75, 0.42);
+      else leaf.setHSL(0.22 + r() * 0.1, 0.5, 0.24 + r() * 0.12);
+      if (night) leaf.multiplyScalar(0.3);
       geo.box(tx, 0, tz, 0.6, h * 0.4, 0.6, 0, trunk);
-      geo.box(tx, h * 0.3, tz, w, h * 0.7, w, r() * 3, leaf);
+      geo.diamond(tx, h * 0.25, tz, w, h * 0.75, r() * 3, leaf);
     }
   }
 

@@ -381,6 +381,28 @@ export function makeF1(team, opt = {}) {
   rain.position.set(0, 0.55, 2.52);
   car.add(rain);
   car.rainLight = rain;
+  // 夜はテールランプが赤く光る (左右のランプ + にじみ)
+  if (opt.night) {
+    const glowTex = canvasTex('tailglow', 64, 64, (g, w, h) => {
+      const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      gr.addColorStop(0, 'rgba(255,90,80,1)');
+      gr.addColorStop(0.35, 'rgba(255,20,20,0.6)');
+      gr.addColorStop(1, 'rgba(255,0,0,0)');
+      g.fillStyle = gr;
+      g.fillRect(0, 0, w, h);
+    });
+    for (const [x, y, z, sc] of [[0, 0.55, 2.6, 1.6], [-0.42, 1.0, 2.5, 0.9], [0.42, 1.0, 2.5, 0.9]]) {
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+      glow.position.set(x, y, z);
+      glow.scale.setScalar(sc);
+      car.add(glow);
+    }
+    for (const sx of [-1, 1]) {
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.03), new THREE.MeshBasicMaterial({ color: 0xff2a20 }));
+      lamp.position.set(sx * 0.42, 1.0, 2.43);
+      car.add(lamp);
+    }
+  }
   // ゼッケン
   const no = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.21), new THREE.MeshBasicMaterial({ map: plateTex('no' + team.no, String(team.no), '#fff', '#111', 92), transparent: false }));
   no.rotation.x = -Math.PI / 2 + 0.25;
@@ -413,12 +435,281 @@ function texBox(w, h, d, night, style = 1, tint = 0xffffff) {
     uv.setXY(i, (uv.getX(i) * sx) / 4, (uv.getY(i) * h) / 3.5);
   }
   const m = new THREE.MeshLambertMaterial({ map: windowTex(night, style), color: tint });
+  if (night) {
+    m.emissive = new THREE.Color(0xffffff);
+    m.emissiveMap = m.map;
+    m.emissiveIntensity = 0.6;
+  }
   const mesh = new THREE.Mesh(g, m);
   mesh.position.y = h / 2;
   return mesh;
 }
 
+// 寄棟の屋根 (幅 w, 奥行 d, 高さ h)。底面が y=0
+function hipRoof(w, d, h, color) {
+  const r = new THREE.Mesh(new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1), mat(color));
+  r.rotation.y = Math.PI / 4;
+  r.scale.set(w, h, d);
+  r.position.y = h / 2;
+  const g = new THREE.Group();
+  g.add(r);
+  return g;
+}
+function solid(w, h, d, color, x = 0, y = 0, z = 0, opt) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, opt));
+  m.position.set(x, y + h / 2, z);
+  return m;
+}
+// 看板 (canvas に描いた文字)
+function signboard(key, w, h, draw, night) {
+  const tex = canvasTex('lm-' + key, 512, Math.round((512 * h) / w), draw);
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, color: night ? 0xffffff : 0xf0f0f0 }));
+}
+
 const MODELS = {
+  // 明治記念館: 和風の本館 (緑青の銅板屋根) と庭園
+  meijikinenkan(night) {
+    const g = new THREE.Group();
+    const wall = night ? 0x8a7a60 : 0xefe6d2;
+    g.add(solid(70, 9, 30, wall));
+    const roof = hipRoof(78, 38, 9, 0x4f8f7a);
+    roof.position.y = 9;
+    g.add(roof);
+    g.add(solid(24, 6, 14, wall, 0, 0, 20));
+    const porch = hipRoof(28, 18, 6, 0x4f8f7a);
+    porch.position.set(0, 6, 20);
+    g.add(porch);
+    // 庭の芝と松
+    const lawn = new THREE.Mesh(new THREE.CircleGeometry(45, 24), mat(0x6f9a4a));
+    lawn.rotation.x = -Math.PI / 2;
+    lawn.position.set(0, 0.15, 55);
+    g.add(lawn);
+    for (let i = 0; i < 7; i++) {
+      const t = new THREE.Mesh(new THREE.ConeGeometry(4, 9, 7), mat(0x2f5a2c));
+      t.position.set(-35 + i * 11, 4.5, 75);
+      g.add(t);
+    }
+    return g;
+  },
+  // ホテルニューオータニ: Y字の本館と、屋上の丸い回転ラウンジ (青)
+  newotani(night) {
+    const g = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const wing = texBox(16, 72, 48, night, 0, 0xf2eee4);
+      wing.geometry = wing.geometry.clone();
+      wing.geometry.translate(0, 0, 22);
+      wing.rotation.y = (i * Math.PI * 2) / 3;
+      g.add(wing);
+    }
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 8, 28), new THREE.MeshLambertMaterial({ color: 0x2a6fd6, emissive: night ? 0x1a4aa0 : 0x0a1a40 }));
+    drum.position.y = 77;
+    g.add(drum);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(9, 15, 3, 28), mat(0xdfe6ee));
+    cap.position.y = 82.5;
+    g.add(cap);
+    const tower = texBox(40, 130, 30, night, 1, 0xc8d4dc); // ガーデンタワー
+    tower.position.set(-90, 0, -40);
+    g.add(tower);
+    // 日本庭園の緑
+    const garden = new THREE.Mesh(new THREE.CircleGeometry(60, 24), mat(0x4e7d3a));
+    garden.rotation.x = -Math.PI / 2;
+    garden.position.set(70, 0.2, 40);
+    g.add(garden);
+    return g;
+  },
+  // 迎賓館赤坂離宮: ネオバロックの宮殿 (白い石と緑の屋根)
+  geihinkan(night) {
+    const g = new THREE.Group();
+    const stone = night ? 0xa8a090 : 0xf3efe4;
+    g.add(solid(125, 16, 30, stone));
+    for (const sx of [-1, 1]) g.add(solid(24, 16, 60, stone, sx * 55, 0, 30));
+    const roof = hipRoof(125, 30, 6, 0x5d9a86);
+    roof.position.y = 16;
+    g.add(roof);
+    for (const sx of [-1, 1]) {
+      const r = hipRoof(24, 60, 6, 0x5d9a86);
+      r.position.set(sx * 55, 16, 30);
+      g.add(r);
+    }
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(7, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x5d9a86));
+    dome.position.y = 21;
+    g.add(dome);
+    return g;
+  },
+  // 聖徳記念絵画館: 左右対称の石造りとドーム
+  kaigakan() {
+    const g = new THREE.Group();
+    g.add(solid(112, 14, 34, 0xd8cbb0));
+    g.add(solid(30, 14, 30, 0xd8cbb0, 0, 14, 0));
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(13, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x7fa89a));
+    dome.position.y = 28;
+    g.add(dome);
+    // 銀杏並木 (黄色)
+    for (const sx of [-1, 1]) {
+      for (let i = 0; i < 12; i++) {
+        const t = new THREE.Mesh(new THREE.ConeGeometry(4.5, 14, 8), mat(0xf2c21b));
+        t.position.set(sx * 14, 8, 50 + i * 14);
+        g.add(t);
+        g.add(solid(0.8, 2, 0.8, 0x5a4630, sx * 14, 0, 50 + i * 14));
+      }
+    }
+    return g;
+  },
+  // 明治神宮野球場
+  jingustadium(night) {
+    const g = new THREE.Group();
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(95, 85, 22, 32, 1, true, -Math.PI * 0.75, Math.PI * 1.5), mat(0x2c5a8c, { side: THREE.DoubleSide }));
+    stand.position.y = 11;
+    g.add(stand);
+    const field = new THREE.Mesh(new THREE.CircleGeometry(85, 32), mat(0x3f8f3a));
+    field.rotation.x = -Math.PI / 2;
+    field.position.y = 0.3;
+    g.add(field);
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI * 0.7 + (i * Math.PI * 1.4) / 5;
+      const pole = solid(1.5, 45, 1.5, 0x8a9096, Math.sin(a) * 92, 0, Math.cos(a) * 92);
+      g.add(pole);
+      const light = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 1), new THREE.MeshBasicMaterial({ color: night ? 0xffffff : 0xdde4ea }));
+      light.position.set(Math.sin(a) * 92, 47, Math.cos(a) * 92);
+      light.lookAt(0, 0, 0);
+      g.add(light);
+    }
+    return g;
+  },
+  // 東京体育館: 大きな銀色の屋根
+  taiikukan() {
+    const g = new THREE.Group();
+    g.add(solid(110, 10, 90, 0xbfc4c6));
+    const roof = new THREE.Mesh(new THREE.SphereGeometry(70, 24, 10, 0, Math.PI * 2, 0, Math.PI * 0.32), mat(0xc9d0d6));
+    roof.scale.set(0.85, 0.6, 0.7);
+    roof.position.y = 10 - 70 * 0.6 * Math.cos(Math.PI * 0.32);
+    g.add(roof);
+    return g;
+  },
+  // タカシマヤ タイムズスクエア: 時計塔のある赤茶のビル
+  takashimaya(night) {
+    const g = new THREE.Group();
+    g.add(texBox(90, 70, 60, night, 0, 0xc58a6a));
+    const t = texBox(20, 30, 20, night, 0, 0xc58a6a);
+    t.position.set(30, 70, 0);
+    g.add(t);
+    const clock = new THREE.Mesh(new THREE.CircleGeometry(5, 20), new THREE.MeshBasicMaterial({ color: 0xfff6e0 }));
+    clock.position.set(40.1, 92, 0);
+    clock.rotation.y = Math.PI / 2;
+    g.add(clock);
+    return g;
+  },
+  // 東京ガーデンテラス紀尾井町
+  gardenterrace(night) {
+    const g = new THREE.Group();
+    const t = texBox(55, 180, 40, night, 1, 0xa9c4d8);
+    g.add(t);
+    const base = texBox(90, 25, 60, night, 1, 0xd8dfe4);
+    g.add(base);
+    return g;
+  },
+  // プルデンシャルタワー (赤坂): 角を落とした高層
+  prudential(night) {
+    const g = new THREE.Group();
+    const t = texBox(45, 158, 45, night, 1, 0x9fb7c8);
+    t.rotation.y = Math.PI / 4;
+    g.add(t);
+    return g;
+  },
+  // 最高裁判所: 花崗岩のブロックを積んだ形
+  saikosai() {
+    const g = new THREE.Group();
+    const c = 0xcfc8bb;
+    g.add(solid(120, 18, 80, c));
+    g.add(solid(70, 12, 50, c, -10, 18, 0));
+    g.add(solid(40, 10, 30, c, -10, 30, 0));
+    return g;
+  },
+  // 国立劇場: 校倉造り風の横長の建物
+  gekijo() {
+    const g = new THREE.Group();
+    g.add(solid(140, 22, 50, 0x7a5a40));
+    for (let i = 0; i < 28; i++) g.add(solid(1.2, 22, 51, 0x5e4430, -68 + i * 5, 0, 0));
+    const roof = hipRoof(146, 56, 5, 0x3a3a3a);
+    roof.position.y = 22;
+    g.add(roof);
+    return g;
+  },
+  // 霞が関ビル (日本初の超高層)
+  kasumigaseki(night) {
+    const g = new THREE.Group();
+    g.add(texBox(55, 147, 33, night, 0, 0xd9d6cc));
+    return g;
+  },
+  // 国立新美術館: 波打つガラスの外壁
+  nact(night) {
+    const g = new THREE.Group();
+    g.add(solid(160, 22, 60, 0xd8dde0));
+    const glass = new THREE.MeshLambertMaterial({ color: 0x7fb6d6, emissive: night ? 0x2a5070 : 0x000000, side: THREE.DoubleSide });
+    const pos = [];
+    const idx = [];
+    const N = 40;
+    for (let i = 0; i <= N; i++) {
+      const x = -80 + (160 * i) / N;
+      const z = 32 + Math.sin(i * 0.5) * 7;
+      pos.push(x, 0, z, x, 22, z + 3);
+    }
+    for (let i = 0; i < N; i++) idx.push(i * 2, i * 2 + 2, i * 2 + 1, i * 2 + 1, i * 2 + 2, i * 2 + 3);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    g.add(new THREE.Mesh(geo, glass));
+    return g;
+  },
+  // テレビ朝日: 白い局舎と丸いアンテナ
+  tvasahi(night) {
+    const g = new THREE.Group();
+    g.add(texBox(80, 40, 50, night, 1, 0xf2f4f6));
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(6, 16, 12), mat(0xff3a2a));
+    ball.position.set(20, 48, 0);
+    g.add(ball);
+    const sign = signboard('tva', 30, 7, (c, w, h) => {
+      c.fillStyle = '#fff'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#e8201a'; c.font = `900 ${h * 0.6}px ${JP}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('六本木', w / 2, h / 2);
+    }, night);
+    sign.position.set(-15, 44, 25.1);
+    g.add(sign);
+    return g;
+  },
+  // SHIBUYA109: 銀色の円筒と看板
+  shibuya109(night) {
+    const g = new THREE.Group();
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(12, 12, 50, 24), new THREE.MeshPhongMaterial({ color: 0xc8ccd2, shininess: 80, emissive: night ? 0x303438 : 0 }));
+    cyl.position.y = 25;
+    g.add(cyl);
+    const sign = new THREE.Mesh(new THREE.CylinderGeometry(12.3, 12.3, 9, 24, 1, true, -0.9, 1.8), new THREE.MeshBasicMaterial({
+      map: canvasTex('lm-109', 512, 128, (c, w, h) => {
+        c.fillStyle = '#1a1a1a'; c.fillRect(0, 0, w, h);
+        c.fillStyle = '#ff3fa0'; c.font = `900 96px ${JP}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText('109', w / 2, h / 2 + 4);
+      }), side: THREE.DoubleSide,
+    }));
+    sign.position.y = 44;
+    g.add(sign);
+    g.add(texBox(40, 35, 30, night, 0, 0xe0dcd4)).position.set(0, 0, -25);
+    return g;
+  },
+  // 駒沢オリンピック公園の記念塔 (五重塔をイメージした塔)
+  komazawa() {
+    const g = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+      const w = 12 - i * 1.4;
+      g.add(solid(w * 0.6, 9, w * 0.6, 0xd8d4c8, 0, i * 10, 0));
+      const eave = solid(w, 1.2, w, 0x7a8a8a, 0, i * 10 + 9, 0);
+      g.add(eave);
+    }
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 12, 6), mat(0x9a9a9a));
+    spire.position.y = 56;
+    g.add(spire);
+    return g;
+  },
   // テックジム (千代田区平河町2丁目)。屋上と壁面に看板
   techgym(night) {
     const g = new THREE.Group();
