@@ -3,7 +3,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { rng, STEP } from './route.js';
 import {
   asphaltTex, concreteTex, barrierTex, tunnelWallTex, windowTex, signTex, bannerTex, checkerTex,
-  plateTex, makeLandmark, mat, canvasTex,
+  plateTex, makeLandmark, makeTechGymBoard, mat, canvasTex,
 } from './models.js';
 
 // 道路の寸法 (m)。横位置は進行方向の左が +
@@ -420,6 +420,7 @@ export class World {
       }
       o.position.set(x, 0, z);
       this.scene.add(o);
+      o.updateMatrixWorld(true);
       if (T.night && !L.far) this.addAviationLight(o, x, z);
     }
     // 夜は高いビル (100m 以上) の屋上に航空障害灯
@@ -449,6 +450,11 @@ export class World {
   }
 
   addAviationLight(o, x, z) {
+    if (o.userData.aviation) {
+      const v = new THREE.Vector3(...o.userData.aviation).applyMatrix4(o.matrixWorld);
+      (this.aviation = this.aviation || []).push([v.x, v.y, v.z]);
+      return;
+    }
     const box = new THREE.Box3().setFromObject(o);
     if (box.max.y < 60) return;
     this.aviation = this.aviation || [];
@@ -825,6 +831,17 @@ export class World {
     for (let s = Math.ceil(s0 / 1500) * 1500 + 700; s < s1; s += 1500) {
       if (c.inTunnel(s)) continue;
       this.speedSign(g, s);
+    }
+    // 道路わきの広告看板 (左側の壁高欄の上)
+    for (const ad of c.ads) {
+      if (!inRange(ad.s)) continue;
+      // 壁高欄の上に支柱を立てる
+      c.at(ad.s, HALF + 0.3, p);
+      const o = makeTechGymBoard(this.theme.night);
+      o.position.set(p.x, p.y + 1.0, p.z);
+      // 近づいてくる車の方へ向け、少し道路側へ振る
+      o.rotation.y = yawOf(p.a) - 0.35;
+      g.add(o);
     }
     // スタート・ゴール
     const start = this.startS ?? 0;

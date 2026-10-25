@@ -41,6 +41,11 @@ export const COURSES = [
       { junction: '三軒茶屋出入口', name: '三軒茶屋', kind: 'ic' },
       { fromEnd: 380, name: '用賀', kind: 'goal' },
     ],
+    // 道路わきの広告看板 (テックジム: 弁慶濠の高架、三宅坂JCT の手前のトンネルの前)
+    ads: [
+      { junction: '三宅坂ジャンクション', before: 600, kind: 'techgym' },
+      { junction: '三宅坂ジャンクション', before: 320, kind: 'techgym' },
+    ],
     // 路線番号の切り替え (案内標識の路線マーク)
     routeNo: [
       { at: [35.67730, 139.61460], no: '4' },

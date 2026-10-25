@@ -60,6 +60,8 @@ export class Course {
     this.sections = (def.sections || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     this.marks = (def.marks || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     this.routeNo = (def.routeNo || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
+    // 道路わきの広告看板: { junction, before: その何m手前 }
+    this.ads = (def.ads || []).map((x) => ({ ...x, s: posOf(x) - (x.before || 0) }));
     this.parks = (def.parks || []).map((x) => ({ ...x, ...this.project(x.lat, x.lon) }));
     this.landmarks = (def.landmarks || []).map((x) => {
       const L = { ...x, ...this.project(x.lat, x.lon) };

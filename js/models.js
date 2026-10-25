@@ -762,15 +762,28 @@ const MODELS = {
       c.font = `900 56px ${JP}`;
       c.fillText('テックジム  VORT永田町 6F', w / 2, h * 0.8);
     });
-    // 周りのビルに埋もれないよう、大きめにして高く掲げる
-    const roof = new THREE.Mesh(new THREE.PlaneGeometry(32, 10), new THREE.MeshBasicMaterial({ map: tex, color: night ? 0xffffff : 0xeeeeee, side: THREE.DoubleSide }));
-    roof.position.set(0, H + 11, 3);
-    g.add(roof);
-    for (const sx of [-12, 0, 12]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 7, 0.5), mat(0x444a50));
-      leg.position.set(sx, H + 4.1, 2.4);
-      g.add(leg);
+    // 屋上から鉄塔を立て、まわりの高層ビル (ガーデンテラス紀尾井町 178m など) の上に看板を掲げる
+    // (弁慶濠の高架から見えるには、看板の下端が地上 約170m 以上必要)
+    const TOP = 182;
+    const red = new THREE.MeshLambertMaterial({ color: 0xd8341f, emissive: night ? 0x601008 : 0 });
+    const white = new THREE.MeshLambertMaterial({ color: 0xf2f2f2, emissive: night ? 0x404040 : 0 });
+    const segs = 10;
+    for (let i = 0; i < segs; i++) {
+      const y0 = H + ((TOP - 12 - H) * i) / segs, y1 = H + ((TOP - 12 - H) * (i + 1)) / segs;
+      const r0 = 5 - 3 * (i / segs), r1 = 5 - 3 * ((i + 1) / segs);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, y1 - y0, 4, 1, true), i % 2 ? white : red);
+      m.material.side = THREE.DoubleSide;
+      m.rotation.y = Math.PI / 4;
+      m.position.y = (y0 + y1) / 2;
+      g.add(m);
     }
+    const tower = new THREE.Mesh(new THREE.PlaneGeometry(40, 12.5), new THREE.MeshBasicMaterial({ map: tex, color: night ? 0xffffff : 0xeeeeee, side: THREE.DoubleSide }));
+    tower.position.set(0, TOP - 6, 0);
+    g.add(tower);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(41, 13.5, 0.6), mat(0x2a2f35));
+    frame.position.set(0, TOP - 6, -0.4);
+    g.add(frame);
+    g.userData.aviation = [0, TOP + 1, 0];
     // 正面の角に縦の看板
     const vt = canvasTex('techgym-v', 160, 640, (c, w, h) => {
       c.fillStyle = '#ff7a00';
@@ -1060,6 +1073,44 @@ const MODELS = {
     return g;
   },
 };
+
+// 首都高の左側に立てるテックジムの広告看板 (幅 14m)。+z が近づいてくる車の方
+export function makeTechGymBoard(night) {
+  const g = new THREE.Group();
+  const tex = canvasTex('techgym-board', 1024, 384, (c, w, h) => {
+    c.fillStyle = '#0b1a2e';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ff7a00';
+    c.fillRect(0, 0, w, 22);
+    c.fillRect(0, h - 22, w, 22);
+    c.fillRect(0, 0, 230, h);
+    c.fillStyle = '#fff';
+    c.font = `900 210px ${JP}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('←', 115, h / 2 + 6);
+    c.font = `900 120px "Orbitron", ${JP}`;
+    c.fillText('TECH GYM', 630, 120);
+    c.fillStyle = '#ffb347';
+    c.font = `900 62px ${JP}`;
+    c.fillText('テックジム この先左', 630, 232);
+    c.fillStyle = '#d8e4f0';
+    c.font = `700 46px ${JP}`;
+    c.fillText('平河町 VORT永田町 6F', 630, 312);
+  });
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(14, 5.25), new THREE.MeshBasicMaterial({ map: tex, color: night ? 0xffffff : 0xf0f0f0 }));
+  panel.position.y = 7.6;
+  g.add(panel);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(14.4, 5.6, 0.4), mat(0x3a4048));
+  back.position.set(0, 7.6, -0.25);
+  g.add(back);
+  for (const sx of [-4.5, 4.5]) {
+    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.5, 7.6, 0.5), mat(0x7d8790));
+    pole.position.set(sx, 3.3, -0.5);
+    g.add(pole);
+  }
+  return g;
+}
 
 export function makeLandmark(name, night) {
   const f = MODELS[name];
