@@ -140,7 +140,7 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 .logo { text-align: center; margin-bottom: 18px; }
 .logo-sub, .logo-en { font-family: var(--num); letter-spacing: 0.4em; color: #9fe0b0; font-size: 12px; }
 .logo h1 { margin: 6px 0; font-size: clamp(38px, 9vw, 72px); font-weight: 900; letter-spacing: 0.06em; line-height: 1.1; text-shadow: 0 4px 0 #000, 0 0 30px rgba(255,42,106,0.5); }
-.logo h1 span { font-family: var(--num); font-weight: 800; color: #ff2a6a; font-style: italic; margin: 0 0.1em; }
+.logo h1 span { color: #ff2a6a; font-style: italic; margin-left: 0.08em; }
 .t-label { font-size: 13px; color: var(--sub); margin: 14px 0 6px; letter-spacing: 0.1em; }
 #courses { display: flex; flex-direction: column; gap: 8px; }
 .course-card { display: flex; align-items: stretch; text-align: left; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(14,20,30,0.85); color: #fff; }

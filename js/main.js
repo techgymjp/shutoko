@@ -1,9 +1,9 @@
-// 首都高F1グランプリ メイン (レース進行・操作・AI・カメラ・HUD)
+// 首都高グランプリ メイン (レース進行・操作・AI・カメラ・HUD)
 import * as THREE from '../vendor/three.module.min.js';
 import { COURSES } from './courses.js';
 import { Course, rng } from './route.js';
 import { World, THEMES, HALF, LANES, yawOf } from './world.js';
-import { makeF1, TEAMS } from './models.js';
+import { makeRacer, TEAMS } from './models.js';
 import { Cockpit } from './cockpit.js';
 import { Effects } from './effects.js';
 import { Traffic } from './traffic.js';
@@ -14,6 +14,7 @@ const KMH = 3.6;
 const VMAX = 340 / KMH;      // 最高速 (m/s)
 const A0 = 12.5;             // 発進加速 (m/s²) 0→100km/h ≒ 2.5 秒
 const BRAKE = 34;            // ブレーキ (m/s²)
+const BEHIND_VMAX = 360 / 3.6; // 自分より後ろの車の最高速 (m/s)
 const AI_GRIP = 32;          // AI がコーナーで使う横方向の加速度 (m/s²)。プレイヤーが切り込んだ時と同じくらい
 const CAR_L = 5.3, CAR_W = 1.6; // 当たり判定 (見た目より少し細い。真ん中を走られても横をすり抜けられる)
 const RUB_W = 1.95;             // これより近いと車体がこすれて火花が出る
@@ -24,7 +25,7 @@ const BOOST_MAX = 0.08;      // 最下位のときのスピードボーナス
 // (先頭は風よけがない)。ゴール前 FINAL_FREE m からは起きない
 const LEAD_GRACE = 2.5, LEAD_PEN_T = 12, LEAD_CD = 6, FINAL_FREE = 500;
 // 奥の手 (オーバーテイクモード): 自分がトップの時、すぐ後ろの車が ERS 全開で抜きに来る
-const ATTACK_T = 7, ATTACK_BOOST = 0.13, ATTACK_GAP = 22; // ATTACK_GAP: 次の奥の手までの秒数 (全車共通)
+const ATTACK_T = 7, ATTACK_BOOST = 0.13, ATTACK_GAP = 12; // ATTACK_GAP: 次の奥の手までの秒数 (全車共通)
 const ERS_SEC = 8;           // ERS 1 本ぶんで全開にできる秒数
 // マシンの脚質 (ダービージョッキーの逃げ・先行・差し・追込)
 // band: 走っていて心地よい順位の範囲 (0 = 先頭, 1 = 最後尾)。この範囲だと ERS がよく溜まり、
@@ -260,7 +261,7 @@ function startRace() {
       model: null,
     };
     if (!isP) {
-      car.model = makeF1(team, { night: T.night });
+      car.model = makeRacer(team, { night: T.night });
       scene.add(car.model);
     }
     racers.push(car);
@@ -584,11 +585,17 @@ function updateAI(dt) {
     let vt = VMAX * car.skill;
     const gap = car.s - P.s;
     // 自分より先に行きすぎた車は少し手を抜き、置いていかれた車は少し頑張る
-    if (gap > 120) vt *= 1 - Math.min(0.09, (gap - 120) / 2500);
-    else if (gap < 0 && G.rank === 1 && G.mode === 'race') {
-      // 自分がトップの時は後続が本気で追い上げてくる (離れるほど速い)
-      vt *= 1.03 + Math.min(0.06, -gap / 1800);
-    } else if (gap < -150) vt *= 1 + Math.min(0.05, (-gap - 150) / 2500);
+    const behind = gap < 0 && G.mode === 'race' && !P.finished;
+    const chasing = behind && gap > -300;
+    if (gap > 120) vt *= 1 - Math.min(0.06, (gap - 120) / 2500);
+    else if (chasing) {
+      // 自分の後ろ 300m 以内の車は、自分の速度を目安に追いかける (抜きつ抜かれつ)。
+      // 自分がトップの時は本気で追い上げる
+      const lead = G.rank === 1;
+      vt = Math.max(vt * (lead ? 1.04 : 1), P.v * (lead ? 1.06 : 1.02) + (lead ? 4 : 1));
+    } else if (gap < -300) vt *= 1 + Math.min(0.08, (-gap - 300) / 2000);
+    // 自分より後ろの車は一律に最高速 360km/h 以上 (コーナーでは下の制限で減速する)
+    if (behind) vt = Math.max(vt, BEHIND_VMAX);
     // 奥の手: オーバーテイクモード中は ERS 全開
     car.attack = Math.max(0, (car.attack || 0) - dt);
     if (car.attack > 0) vt *= 1 + ATTACK_BOOST;
@@ -636,7 +643,7 @@ function updateAI(dt) {
     const sp = car.v / VMAX;
     if (car.finished) vt = car.s > c.length - 120 ? 0 : 30;
     if (!racing && !car.finished) a = 0;
-    else if (car.v < vt) a = Math.min(Math.max(car.attack > 0 ? 5 : 1.5, A0 * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp * 0.9), (vt - car.v) * 3);
+    else if (car.v < vt) a = Math.min(Math.max(car.attack > 0 ? 6 : behind ? 4 : 1.5, A0 * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp * 0.9), (vt - car.v) * 3);
     else a = -Math.min(26, (car.v - vt) * 2.5 + 2);
     if (Math.abs(car.spin) > 0.25) a = Math.min(a, -9);
     car.v = Math.max(0, car.v + a * dt);
@@ -659,7 +666,7 @@ function updateAttack(dt) {
   G.attackCd = Math.max(0, (G.attackCd || 0) - dt);
   const P = G.player;
   if (G.mode !== 'race' || P.finished || G.rank !== 1 || G.attackCd > 0) return;
-  if (!(G.penalty > 0 || G.leadT > 6)) return;
+  if (!(G.penalty > 0 || G.leadT > 4)) return;
   // すぐ後ろ (150m 以内) の車
   let best = null;
   for (const r of G.racers) {

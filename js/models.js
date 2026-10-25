@@ -1,4 +1,4 @@
-// テクスチャと 3D モデル (F1 マシン・ランドマーク)
+// テクスチャと 3D モデル (レーシングマシン・ランドマーク)
 import * as THREE from '../vendor/three.module.min.js';
 
 const texCache = new Map();
@@ -240,16 +240,16 @@ export function plateTex(key, text, bg, fg, font = 64) {
   });
 }
 
-// ---------------- F1 マシン ----------------
+// ---------------- レーシングマシン ----------------
 // 前方 = -z, 長さ ≒ 5.6m, 幅 2.0m
 export const TEAMS = [
   { name: 'SAKURA', body: 0xf3f3f3, accent: 0xe4007f, no: 7 },
-  { name: 'ROSSO', body: 0xc8102e, accent: 0xffd200, no: 16 },
-  { name: 'SILVER ARROW', body: 0x8f9aa3, accent: 0x00d2be, no: 44 },
-  { name: 'BULL', body: 0x1e2a5a, accent: 0xe10600, no: 1 },
-  { name: 'PAPAYA', body: 0xff8000, accent: 0x111111, no: 4 },
+  { name: 'AKANE', body: 0xc8102e, accent: 0xffd200, no: 16 },
+  { name: 'SHIROGANE', body: 0x8f9aa3, accent: 0x00d2be, no: 44 },
+  { name: 'RAIJIN', body: 0x1e2a5a, accent: 0xe10600, no: 1 },
+  { name: 'MIKAN', body: 0xff8000, accent: 0x111111, no: 4 },
   { name: 'EMERALD', body: 0x005a46, accent: 0xc8e600, no: 14 },
-  { name: 'ALPINE BLUE', body: 0x1265c8, accent: 0xff7fc0, no: 10 },
+  { name: 'SORA', body: 0x1265c8, accent: 0xff7fc0, no: 10 },
   { name: 'KABUTO', body: 0xf0d020, accent: 0x111111, no: 22 },
   { name: 'SAMURAI', body: 0x111111, accent: 0xd4af37, no: 63 },
   { name: 'MIDORI', body: 0x37b24d, accent: 0xffffff, no: 23 },
@@ -313,7 +313,7 @@ function tub(profile, m) {
   return new THREE.Mesh(g, m);
 }
 
-export function makeF1(team, opt = {}) {
+export function makeRacer(team, opt = {}) {
   const car = new THREE.Group();
   const body = new THREE.MeshPhongMaterial({ color: team.body, shininess: 70, specular: 0x666666, side: THREE.DoubleSide });
   const accent = new THREE.MeshPhongMaterial({ color: team.accent, shininess: 50 });

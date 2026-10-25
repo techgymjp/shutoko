@@ -31,6 +31,12 @@ export class Cockpit {
     this.hemi = new THREE.HemisphereLight(theme.hemiSky, theme.hemiGround, theme.hemi * 1.1);
     this.sun = new THREE.DirectionalLight(theme.sun, theme.sunI * 0.9);
     this.sun.position.set(0.3, 1, 0.4);
+    if (theme.dusk) {
+      // 夕焼けの色そのままだと車体が真っ赤に染まるので、少し白に寄せる
+      this.sun.color.lerp(new THREE.Color(0xffffff), 0.5);
+      this.sun.intensity *= 0.6;
+      this.hemi.color.lerp(new THREE.Color(0xffffff), 0.45);
+    }
     this.scene.add(this.hemi, this.sun);
     this.baseHemi = this.hemi.intensity;
     this.baseSun = this.sun.intensity;

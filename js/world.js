@@ -27,7 +27,7 @@ const AERIAL = 0xd03a2a;
 // 屋上広告 (架空の店・会社)
 const ADS = [
   ['ラーメン', '#c8102e', '#fff'], ['焼肉', '#1a1a1a', '#ffcc00'], ['カラオケ', '#7b2cbf', '#fff'], ['不動産', '#0b5fa5', '#fff'],
-  ['英会話', '#ff6b00', '#fff'], ['TECH GYM', '#0b1a2e', '#ff9a3c'], ['首都高F1', '#e4007f', '#fff'], ['お茶', '#2e7d32', '#fff'],
+  ['英会話', '#ff6b00', '#fff'], ['TECH GYM', '#0b1a2e', '#ff9a3c'], ['首都高GP', '#e4007f', '#fff'], ['お茶', '#2e7d32', '#fff'],
   ['家電', '#ffd400', '#d00'], ['ビール', '#f4a300', '#3a1a00'], ['温泉', '#00897b', '#fff'], ['SALE', '#e53935', '#fff'],
   ['寿司', '#fafafa', '#c8102e'], ['ホテル', '#283593', '#ffd54f'], ['眼鏡', '#00acc1', '#fff'], ['プログラミング', '#111', '#3dff8a'],
 ];
@@ -70,11 +70,14 @@ export const THEMES = {
     hemiSky: 0xdfeeff, hemiGround: 0x6a6a60, hemi: 1.6, sun: 0xfff3e0, sunI: 2.2, sunDir: [-0.4, 0.8, 0.3],
     ground: '#6c6e6c', lamp: 0x000000,
   },
+  // 夕焼け: 地平線の金色と真っ赤な茜色から、紫、群青へ。太陽は西南西の地平線すれすれ
   dusk: {
-    label: '夕暮れ', night: false,
-    skyTop: 0x2b3f78, skyBottom: 0xf3a060, fog: 0xc89a80, fogNear: 220, fogFar: 2800,
-    hemiSky: 0xffc8a0, hemiGround: 0x403848, hemi: 1.1, sun: 0xffa060, sunI: 1.8, sunDir: [-0.9, 0.22, 0.25],
-    ground: '#57514f', lamp: 0xffb060,
+    label: '夕暮れ', night: false, dusk: true,
+    skyTop: 0x141c4a, skyBottom: 0xff5a30, fog: 0xd8745e, fogNear: 400, fogFar: 4200,
+    sky: [[-0.05, 0x5a2438], [0, 0xff8a3a], [0.025, 0xff4a2a], [0.09, 0xe8486a], [0.2, 0x9a4890], [0.42, 0x3c3c8c], [1, 0x141c4a]],
+    glow: 0xffd070, glowBack: 0x8a5aa8,
+    hemiSky: 0xff9a7a, hemiGround: 0x4a2a5a, hemi: 1.25, sun: 0xff7a30, sunI: 3.0, sunDir: [-0.95, 0.07, 0.3],
+    ground: '#4f4048', lamp: 0xffb060,
   },
   night: {
     label: '夜', night: true,
@@ -83,8 +86,6 @@ export const THEMES = {
     ground: '#2a2b30', lamp: 0xffc070,
   },
 };
-
-const themeKeyCloud = (T) => (T.skyBottom === THEMES.dusk.skyBottom ? 0xffc8a8 : 0xffffff);
 
 // ---------------- ジオメトリ補助 ----------------
 class Geo {
@@ -290,13 +291,31 @@ export class World {
     scene.fog = new THREE.Fog(T.fog, T.fogNear, T.fogFar);
     scene.background = new THREE.Color(T.fog);
     // 空 (グラデーションの球)
-    const skyGeo = new THREE.SphereGeometry(18000, 24, 12);
+    const skyGeo = new THREE.SphereGeometry(18000, 48, 32);
     const top = new THREE.Color(T.skyTop), bot = new THREE.Color(T.skyBottom), fog = new THREE.Color(T.fog);
     const col = [];
     const pa = skyGeo.attributes.position;
+    const sunXZ = new THREE.Vector2(T.sunDir[0], T.sunDir[2]).normalize();
+    const stops = T.sky && T.sky.map(([y, c]) => [y, new THREE.Color(c)]);
     for (let i = 0; i < pa.count; i++) {
       const y = pa.getY(i) / 18000;
-      const c = y < 0 ? fog.clone() : y < 0.08 ? fog.clone().lerp(bot, y / 0.08) : bot.clone().lerp(top, Math.pow((y - 0.08) / 0.92, 0.6));
+      let c;
+      if (stops) {
+        // 高さごとの色の帯 + 太陽の方角ほど金色に燃え、反対側は紫に沈む
+        c = stops[0][1].clone();
+        for (let k = 0; k < stops.length - 1; k++) {
+          const [y0, c0] = stops[k], [y1, c1] = stops[k + 1];
+          if (y >= y0 && y <= y1) c = c0.clone().lerp(c1, (y - y0) / (y1 - y0));
+          else if (y > y1) c = c1.clone();
+        }
+        const h = new THREE.Vector2(pa.getX(i), pa.getZ(i));
+        const d = h.length() > 1 ? h.normalize().dot(sunXZ) : 0;
+        const low = 1 - Math.min(1, Math.max(0, y) / 0.35);
+        if (d > 0) c.lerp(new THREE.Color(T.glow), Math.pow(d, 5) * low * 0.9);
+        else c.lerp(new THREE.Color(T.glowBack), Math.pow(-d, 2) * low * 0.45);
+      } else {
+        c = y < 0 ? fog.clone() : y < 0.08 ? fog.clone().lerp(bot, y / 0.08) : bot.clone().lerp(top, Math.pow((y - 0.08) / 0.92, 0.6));
+      }
       col.push(c.r, c.g, c.b);
     }
     skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
@@ -313,9 +332,16 @@ export class World {
       g.fillRect(0, 0, w, h);
     });
     this.sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunTex, fog: false, depthWrite: false, color: T.night ? 0xccd8ff : 0xffffff }));
-    this.sun.scale.setScalar(T.night ? 500 : 1400);
+    this.sun.scale.setScalar(T.night ? 500 : T.dusk ? 1700 : 1400);
     this.sunDir = new THREE.Vector3(...T.sunDir).normalize();
     scene.add(this.sun);
+    if (T.dusk) {
+      // 夕日のまわりの大きな光のにじみ
+      this.sun.material.color.setHex(0xffe0a0);
+      this.sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunTex, fog: false, depthWrite: false, color: 0xff8a40, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending }));
+      this.sunGlow.scale.set(9000, 5000, 1);
+      scene.add(this.sunGlow);
+    }
     // 雲 (昼・夕暮れ)
     if (!T.night) {
       const cloudTex = canvasTex('cloud', 256, 128, (g, w, h) => {
@@ -329,15 +355,26 @@ export class World {
           g.fillRect(0, 0, w, h);
         }
       });
-      const cm = new THREE.SpriteMaterial({ map: cloudTex, fog: false, depthWrite: false, transparent: true, color: themeKeyCloud(T), opacity: 0.9 });
+      const cm = new THREE.SpriteMaterial({ map: cloudTex, fog: false, depthWrite: false, transparent: true, color: 0xffffff, opacity: 0.9 });
       this.clouds = new THREE.Group();
       const rr = rng(5);
-      for (let i = 0; i < 45; i++) {
-        const sp = new THREE.Sprite(cm);
-        const a = rr() * Math.PI * 2, d = 2500 + rr() * 9000;
-        sp.position.set(Math.cos(a) * d, 700 + rr() * 1100, Math.sin(a) * d);
+      const sunA = Math.atan2(T.sunDir[2], T.sunDir[0]);
+      const n = T.dusk ? 70 : 45;
+      for (let i = 0; i < n; i++) {
+        // 夕暮れは太陽の側に雲を多めに、低くたなびかせる
+        const a = T.dusk && i < 35 ? sunA + (rr() - 0.5) * 1.6 : rr() * Math.PI * 2;
+        const d = 2500 + rr() * 9000;
+        let mat = cm;
+        if (T.dusk) {
+          // 太陽の側は金色、横はオレンジとピンク、反対側は紫
+          const f = Math.cos(a - sunA);
+          const c = new THREE.Color(f > 0.75 ? 0xffd27a : f > 0.3 ? 0xff9a5a : f > -0.3 ? 0xff7a8a : 0xa07ab8);
+          mat = new THREE.SpriteMaterial({ map: cloudTex, fog: false, depthWrite: false, transparent: true, color: c, opacity: 0.95 });
+        }
+        const sp = new THREE.Sprite(mat);
+        sp.position.set(Math.cos(a) * d, (T.dusk ? 250 : 700) + rr() * (T.dusk ? 900 : 1100), Math.sin(a) * d);
         const sc = 900 + rr() * 1600;
-        sp.scale.set(sc, sc * 0.45, 1);
+        sp.scale.set(sc * (T.dusk ? 1.8 : 1), sc * (T.dusk ? 0.3 : 0.45), 1);
         this.clouds.add(sp);
       }
       this.clouds.renderOrder = -9;
@@ -494,6 +531,7 @@ export class World {
     this.ground.position.set(Math.round(camPos.x / 40) * 40, 0, Math.round(camPos.z / 40) * 40);
     this.sky.position.copy(camPos);
     this.sun.position.copy(camPos).addScaledVector(this.sunDir, 15000);
+    if (this.sunGlow) this.sunGlow.position.copy(camPos).addScaledVector(this.sunDir, 16000);
     if (this.stars) this.stars.position.copy(camPos);
     if (this.clouds) this.clouds.position.set(camPos.x * 0.7, 0, camPos.z * 0.7);
     this.buildAviation();
