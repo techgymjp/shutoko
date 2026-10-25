@@ -412,6 +412,11 @@ export class World {
         o.traverse((m) => { if (m.material) m.material.fog = false; });
       } else {
         o.rotation.y = c.at(L.s).a - Math.PI / 2;
+        if (L.face) {
+          // 正面 (+z) を指定の地点へ向ける
+          const f = c.project(L.face[0], L.face[1]);
+          o.rotation.y = Math.atan2(f.x - x, f.z - z);
+        }
       }
       o.position.set(x, 0, z);
       this.scene.add(o);

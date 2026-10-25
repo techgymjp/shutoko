@@ -67,7 +67,8 @@ export const COURSES = [
     // (この場所の PLATEAU の建物は tools/build_course.py の REPLACE で除いてある)。
     // spot: 近づくと出るお知らせ / crown: その場所でいちばん高いビルの屋上に飾りを付ける
     landmarks: [
-      { model: 'techgym', lat: 35.68060, lon: 139.74000, name: 'テックジム', spot: '左手に テックジム（千代田区平河町2丁目）' },
+      // テックジム: 千代田区平河町2-7-2 VORT永田町 6F (位置は国土地理院の住所検索の「平河町二丁目7番」)。弁慶濠の高架の方を向ける
+      { model: 'techgym', lat: 35.68022, lon: 139.74014, face: [35.68010, 139.73300], name: 'テックジム', spot: '左手に テックジム（平河町2-7-2 VORT永田町 6F）' },
       { model: 'chimney', lat: 35.68240, lon: 139.61420, name: '杉並清掃工場' },
       { model: 'stadium', lat: 35.67790, lon: 139.71460, name: '国立競技場' },
       { model: 'jingustadium', lat: 35.67450, lon: 139.71700, name: '明治神宮野球場' },

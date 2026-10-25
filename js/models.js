@@ -710,14 +710,41 @@ const MODELS = {
     g.add(spire);
     return g;
   },
-  // テックジム (千代田区平河町2丁目)。屋上と壁面に看板
+  // テックジム (千代田区平河町2-7-2 VORT永田町 6F)。+z の面が近づいてくる車の方を向く
+  // 10階建て: 1階 4.5m、2階から上は 3.5m ずつ。6階は 18.5〜22m
   techgym(night) {
     const g = new THREE.Group();
-    const b = texBox(26, 38, 22, night, 1, 0xd8dde2);
-    g.add(b);
-    const crown = new THREE.Mesh(new THREE.BoxGeometry(27, 1.2, 23), mat(0x5c646b));
-    crown.position.y = 38.6;
+    const W = 24, D = 20, H = 36.5;
+    g.add(texBox(W, H, D, night, 1, 0xd8dde2));
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(W + 1, 1.2, D + 1), mat(0x5c646b));
+    crown.position.y = H + 0.6;
     g.add(crown);
+    // 6階: オレンジに光る窓の帯と「TECH GYM 6F」
+    const band = canvasTex('techgym-6f', 1024, 128, (c, w, h) => {
+      const gr = c.createLinearGradient(0, 0, 0, h);
+      gr.addColorStop(0, '#ffb347');
+      gr.addColorStop(1, '#ff7a00');
+      c.fillStyle = gr;
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = 'rgba(255,255,255,0.35)';
+      for (let x = 0; x < w; x += 64) c.fillRect(x, 0, 4, h);
+      c.fillStyle = '#0b1a2e';
+      c.font = `900 84px "Orbitron", ${JP}`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('TECH GYM  6F', w / 2, h / 2 + 4);
+    });
+    const bandMat = new THREE.MeshBasicMaterial({ map: band, color: night ? 0xffffff : 0xf4f4f4 });
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(W, 3.5), bandMat);
+    front.position.set(0, 20.25, D / 2 + 0.06);
+    g.add(front);
+    for (const sx of [-1, 1]) {
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(D, 3.5), bandMat);
+      side.position.set(sx * (W / 2 + 0.06), 20.25, 0);
+      side.rotation.y = sx * Math.PI / 2;
+      g.add(side);
+    }
+    // 屋上の看板
     const tex = canvasTex('techgym-sign', 1024, 320, (c, w, h) => {
       c.fillStyle = '#0b1a2e';
       c.fillRect(0, 0, w, h);
@@ -730,21 +757,19 @@ const MODELS = {
       c.textBaseline = 'middle';
       c.fillText('TECH GYM', w / 2, h * 0.42);
       c.fillStyle = '#ffb347';
-      c.font = `900 64px ${JP}`;
-      c.fillText('テックジム  平河町', w / 2, h * 0.8);
+      c.font = `900 56px ${JP}`;
+      c.fillText('テックジム  VORT永田町 6F', w / 2, h * 0.8);
     });
-    const signMat = new THREE.MeshBasicMaterial({ map: tex, color: night ? 0xffffff : 0xeeeeee, side: THREE.DoubleSide });
-    // 屋上の看板 (近づいてくる車の方へ向け、少し道路側へ振る)
-    const roof = new THREE.Mesh(new THREE.PlaneGeometry(22, 6.9), signMat);
-    roof.position.set(0, 43.5, 4);
-    roof.rotation.y = 0.35;
+    // 周りのビルに埋もれないよう、大きめにして高く掲げる
+    const roof = new THREE.Mesh(new THREE.PlaneGeometry(32, 10), new THREE.MeshBasicMaterial({ map: tex, color: night ? 0xffffff : 0xeeeeee, side: THREE.DoubleSide }));
+    roof.position.set(0, H + 11, 3);
     g.add(roof);
-    for (const sx of [-8, 0, 8]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 0.4), mat(0x444a50));
-      leg.position.set(sx, 41.2, 3.2);
+    for (const sx of [-12, 0, 12]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 7, 0.5), mat(0x444a50));
+      leg.position.set(sx, H + 4.1, 2.4);
       g.add(leg);
     }
-    // 道路側の壁面に縦の看板
+    // 正面の角に縦の看板
     const vt = canvasTex('techgym-v', 160, 640, (c, w, h) => {
       c.fillStyle = '#ff7a00';
       c.fillRect(0, 0, w, h);
@@ -755,8 +780,7 @@ const MODELS = {
       ['テ', 'ッ', 'ク', 'ジ', 'ム'].forEach((ch, i) => c.fillText(ch, w / 2, 70 + i * 122));
     });
     const v = new THREE.Mesh(new THREE.PlaneGeometry(3, 12), new THREE.MeshBasicMaterial({ map: vt, color: night ? 0xffffff : 0xeeeeee }));
-    v.position.set(13.05, 28, 6);
-    v.rotation.y = Math.PI / 2;
+    v.position.set(W / 2 - 2, 29, D / 2 + 0.08);
     g.add(v);
     return g;
   },
