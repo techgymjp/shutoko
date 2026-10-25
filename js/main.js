@@ -14,8 +14,8 @@ const KMH = 3.6;
 const VMAX = 340 / KMH;      // 最高速 (m/s)
 const A0 = 12.5;             // 発進加速 (m/s²) 0→100km/h ≒ 2.5 秒
 const BRAKE = 34;            // ブレーキ (m/s²)
+const GAP_STEP = 10;            // 秒差を測る地点の間隔 (m)
 const BEHIND_VMAX = 360 / 3.6; // 自分より後ろの車の最高速 (m/s)
-const AI_GRIP = 32;          // AI がコーナーで使う横方向の加速度 (m/s²)。プレイヤーが切り込んだ時と同じくらい
 const CAR_L = 5.3, CAR_W = 1.6; // 当たり判定 (見た目より少し細い。真ん中を走られても横をすり抜けられる)
 const RUB_W = 1.95;             // これより近いと車体がこすれて火花が出る
 const EDGE = HALF - 1.0;     // 車の中心が動ける範囲
@@ -259,6 +259,8 @@ function startRace() {
       laneT: LANES[slot % 2], laneTimer: 4 + r() * 8, react: 0.1 + r() * 0.5,
       finished: false, time: 0, hitCd: 0, startDelay: isP ? 0 : 0.05 + r() * 0.2,
       model: null,
+      // コースの各地点 (10m ごと) を通った時刻。秒差の計算に使う
+      tAt: new Float32Array(Math.ceil(course.length / GAP_STEP) + 1).fill(-1), tIdx: -1,
     };
     if (!isP) {
       car.model = makeRacer(team, { night: T.night });
@@ -541,6 +543,7 @@ function updatePlayer(dt) {
   P.vx *= Math.exp(-dt * 4.5);
   P.x += P.vx * dt;
   G.skid = Math.abs(over) / 12 + (Math.abs(P.spin) > 0.2 ? 0.6 : 0);
+  G.over = over;
 
   // 壁
   if (Math.abs(P.x) > EDGE) {
@@ -550,14 +553,15 @@ function updatePlayer(dt) {
     if (impact > 3.5 && G.scrapeT <= 0) {
       const pos = worldPos(P, 0.35, 1.2, side * 0.9);
       hitFx(impact / 18, pos, carVel(P), 'wall');
-      P.v *= 1 - clamp(impact / 60, 0.03, 0.25);
+      P.v *= 1 - clamp(0.12 + impact / 40, 0.15, 0.4);
       P.spinV += -side * impact * 0.04;
       G.scrapeT = 0.35;
     }
     P.vx = -side * Math.min(3, Math.abs(P.vx) * 0.35 + 0.8);
     // こすっている間: 減速・火花・振動
     if (P.v > 5) {
-      P.v -= 7 * dt;
+      // 壁に沿ってカーブを全開で抜けられないよう、速いほど・強く押し付けるほど大きく減速
+      P.v -= (8 + P.v * 0.18 + Math.abs(G.over || 0) * 0.6) * dt;
       G.scraping = 0.15;
       G.shake = Math.max(G.shake, 0.08);
       G.effects.sparks(worldPos(P, 0.2, 0.5 + Math.random() * 1.5, side * 0.95, _v), 3, carVel(P, _w), side);
@@ -602,9 +606,7 @@ function updateAI(dt) {
     const slip = slipFor(car);
     vt += slip * 8;
     // コーナー手前で減速 (プレイヤーがハンドルを切り込んだ時と同じくらいまで攻める)
-    const look = (car.v * car.v) / (2 * 22) + 25;
-    const kmax = c.maxCurv(car.s, look);
-    if (kmax > 1e-4) vt = Math.min(vt, Math.sqrt((AI_GRIP * (car.attack > 0 ? 1.12 : 1)) / kmax));
+    // AI はカーブでも減速しない (道路に沿って走る)
     // 前の車 (自分も含む) に詰まったら、横にあいている所から抜く。抜けない時だけ速度を合わせる
     let blocker = null;
     for (const o of G.racers) {
@@ -782,6 +784,22 @@ function collide() {
   }
 }
 
+// 各車がコースの各地点を通った時刻を記録する
+function recordPassing() {
+  if (G.mode !== 'race' && G.mode !== 'result') return;
+  for (const r of G.racers) {
+    const k = Math.min(r.tAt.length - 1, Math.floor(r.s / GAP_STEP));
+    while (r.tIdx < k) r.tAt[++r.tIdx] = G.raceT;
+  }
+}
+// 前の車 ahead と後ろの車 behind の秒差: ahead が behind の今いる地点を通ってからの時間
+function timeGap(ahead, behind) {
+  if (ahead.finished && behind.finished) return behind.time - ahead.time;
+  const t = ahead.tAt[Math.min(ahead.tAt.length - 1, Math.max(0, Math.floor(behind.s / GAP_STEP)))];
+  if (t >= 0) return Math.max(0, G.raceT - t);
+  return (ahead.s - behind.s) / Math.max(20, behind.v);
+}
+
 function updateRanks() {
   const list = [...G.racers].sort((p, q) => {
     if (p.finished && q.finished) return p.time - q.time;
@@ -890,7 +908,7 @@ function updateTower() {
   const el = $('tower');
   const leader = G.order[0];
   el.innerHTML = G.order.map((r) => {
-    const gap = r === leader ? 'LEADER' : r.finished ? fmt(r.time) : '+' + ((leader.s - r.s) / Math.max(20, r.v)).toFixed(1);
+    const gap = r === leader ? 'LEADER' : r.finished ? fmt(r.time) : '+' + timeGap(leader, r).toFixed(1);
     return `<div class="${r.player ? 'me' : ''}"><b>${r.rank}</b><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i><span>${esc(nameOf(r).split(' ')[0].slice(0, 7))}</span><em>${gap}</em></div>`;
   }).join('');
 }
@@ -983,7 +1001,7 @@ function updateHUD(dt) {
   $('row-behind').hidden = !behind;
   if (behind) {
     const gapM = P.s - behind.s;
-    $('hud-behind').textContent = '+' + (gapM / Math.max(20, P.v)).toFixed(1);
+    $('hud-behind').textContent = '+' + timeGap(P, behind).toFixed(1);
     G.warnT = (G.warnT || 0) - dt;
     if (gapM < 25 && G.warnT <= 0 && G.mode === 'race') {
       showAlert('後続が迫る!', '', 900);
@@ -1099,6 +1117,7 @@ function frame(now, noRender) {
     updateAI(dt / n);
     collide();
   }
+  recordPassing();
   updateRanks();
   updateAttack(dt);
   if (G.mode === 'race') checkFinish();

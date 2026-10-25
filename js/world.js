@@ -426,7 +426,9 @@ export class World {
       const m = new THREE.Mesh(new THREE.CircleGeometry(p.r, 40), new THREE.MeshLambertMaterial({
         color: water ? (T.night ? 0x10202a : 0x3d6676) : (T.night ? 0x1d2a1c : 0x55783e),
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+        depthWrite: false, // 掘割やトンネルの入口の道路を隠さない
       }));
+      m.renderOrder = -4;
       m.rotation.x = -Math.PI / 2;
       m.position.set(p.x, water ? 0.04 : 0.08, p.z);
       this.scene.add(m);
@@ -458,6 +460,7 @@ export class World {
       o.position.set(x, 0, z);
       this.scene.add(o);
       o.updateMatrixWorld(true);
+      if (o.userData.balloon) (this.balloons = this.balloons || []).push(o.userData.balloon);
       if (T.night && !L.far) this.addAviationLight(o, x, z);
     }
     // 夜は高いビル (100m 以上) の屋上に航空障害灯
@@ -536,6 +539,12 @@ export class World {
     if (this.clouds) this.clouds.position.set(camPos.x * 0.7, 0, camPos.z * 0.7);
     this.buildAviation();
     if (this.avPoints) this.avPoints.material.opacity = Math.sin(t * 3) > 0 ? 1 : 0.15;
+    // アドバルーンが風でゆっくり揺れる
+    for (const b of this.balloons || []) {
+      b.rotation.z = Math.sin(t * 0.5) * 0.03;
+      b.rotation.x = Math.sin(t * 0.37 + 1) * 0.025;
+      b.rotation.y = t * 0.05;
+    }
   }
 
   // 全チャンクを先に作る (スタート時)

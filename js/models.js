@@ -804,6 +804,51 @@ const MODELS = {
     frame.position.set(0, TOP - 6, -0.4);
     g.add(frame);
     g.userData.aviation = [0, TOP + 1, 0];
+    // アドバルーン: 遠く (外苑あたり) からも見えるよう大きく高く上げ、霧で消えないようにする
+    const balloon = new THREE.Group();
+    // 外苑あたり (約2.5km 手前) から、赤坂の高層ビルの上に見えるよう高さ約380m・直径約70m (ゲームの演出)
+    const BY = 380, BR = 35;
+    const ballTex = canvasTex('techgym-balloon', 1024, 512, (c, w, h) => {
+      c.fillStyle = '#ff6a00';
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = '#ffffff';
+      c.fillRect(0, h * 0.38, w, h * 0.24);
+      c.fillStyle = '#0b1a2e';
+      c.font = `900 ${h * 0.17}px "Orbitron", ${JP}`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      // 球の周りに2回書く (どこから見ても読める)
+      c.fillText('TECH GYM', w * 0.25, h / 2 + 4);
+      c.fillText('TECH GYM', w * 0.75, h / 2 + 4);
+    });
+    const fogless = (m) => { m.fog = false; return m; };
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(BR, 32, 20), fogless(new THREE.MeshLambertMaterial({ map: ballTex, emissive: night ? 0x803000 : 0x2a1000 })));
+    ball.position.y = BY;
+    balloon.add(ball);
+    // 垂れ幕 (縦書き)
+    const bannerTex = canvasTex('techgym-banner', 192, 1024, (c, w, h) => {
+      c.fillStyle = '#ffffff';
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = '#ff6a00';
+      c.fillRect(0, 0, 14, h);
+      c.fillRect(w - 14, 0, 14, h);
+      c.fillStyle = '#0b1a2e';
+      c.font = `900 108px ${JP}`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      const txt = 'テックジム平河町';
+      [...txt].forEach((ch, i) => c.fillText(ch, w / 2, 70 + i * 120));
+    });
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(22, 118), fogless(new THREE.MeshBasicMaterial({ map: bannerTex, side: THREE.DoubleSide, color: night ? 0xffffff : 0xf2f2f2 })));
+    banner.position.y = BY - BR - 63;
+    balloon.add(banner);
+    // ロープ (屋上の看板の上から)
+    const ropeLen = BY - BR - 122 - (TOP + 2);
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, ropeLen, 4), fogless(new THREE.MeshBasicMaterial({ color: 0x555555 })));
+    rope.position.y = TOP + 2 + ropeLen / 2;
+    g.add(rope);
+    g.add(balloon);
+    g.userData.balloon = balloon;
     // 正面の角に縦の看板
     const vt = canvasTex('techgym-v', 160, 640, (c, w, h) => {
       c.fillStyle = '#ff7a00';
