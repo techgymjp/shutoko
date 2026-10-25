@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>首都高F1グランプリ</title>
+<meta name="description" content="首都高をF1マシンで駆け抜ける3Dレースゲーム。高井戸から霞が関を経由して用賀まで、ドライバー目線で12台のバトル。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🏁%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+  <div id="speedlines"></div>
+  <div id="tunnelfade"></div>
+  <div id="redv"></div>
+  <div id="flash"></div>
+
+  <div id="hud" hidden>
+    <div id="posbox" class="panel">
+      <div class="pos"><small>POS</small><b id="hud-pos">1</b><span>/12</span></div>
+      <div class="row"><span class="lbl">TIME</span><b id="hud-time">0:00.00</b></div>
+    </div>
+    <div id="tower" class="panel"></div>
+
+    <div id="infobox" class="panel">
+      <div class="course" id="hud-course"></div>
+      <div class="row"><span class="lbl">次</span><b id="hud-next" class="nm">-</b><small id="hud-nextd"></small></div>
+      <div class="row"><span class="lbl">ゴールまで</span><b id="hud-remain">0.0</b><small>km</small></div>
+    </div>
+    <canvas id="minimap" width="300" height="220"></canvas>
+
+    <div id="speedbox">
+      <div id="rpm"><i id="rpm-bar"></i></div>
+      <div class="sp"><b id="hud-speed">0</b><small>km/h</small></div>
+      <div class="gear"><small>GEAR</small><b id="hud-gear">N</b></div>
+    </div>
+    <div id="boost"><b>追い上げブースト</b> <span id="boost-v">+0</span><small>km/h</small></div>
+    <div id="slip">SLIPSTREAM</div>
+
+    <div id="lights" hidden><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="grid-msg"></div>
+    <div id="telop"><div class="t-band"><div class="t-sub" id="telop-sub"></div><div class="t-main" id="telop-main"></div><div class="t-en" id="telop-en"></div></div></div>
+    <div id="alert"></div>
+    <div id="announce"></div>
+
+    <div id="topbtns">
+      <button id="btn-mute" aria-label="消音">🔊</button>
+      <button id="btn-pause" aria-label="一時停止">❚❚</button>
+    </div>
+  </div>
+
+  <div id="touch" hidden>
+    <div class="tl">
+      <button data-k="left" aria-label="左">◀</button>
+      <button data-k="right" aria-label="右">▶</button>
+    </div>
+    <div class="tr">
+      <button data-k="brake" class="brk" aria-label="ブレーキ">BRAKE</button>
+      <button data-k="accel" class="acc" aria-label="アクセル">ACCEL</button>
+    </div>
+  </div>
+
+  <!-- タイトル -->
+  <div id="title">
+    <div class="t-wrap">
+      <div class="logo">
+        <div class="logo-sub">SHUTO EXPRESSWAY</div>
+        <h1>首都高<span>F1</span>グランプリ</h1>
+        <div class="logo-en">SHUTOKO F1 GRAND PRIX</div>
+      </div>
+      <div class="t-label">ルートを選ぶ</div>
+      <div id="courses"></div>
+      <div class="t-row">
+        <div class="t-label">時間帯</div>
+        <div id="themes">
+          <button data-t="day">昼</button>
+          <button data-t="dusk">夕暮れ</button>
+          <button data-t="night">夜</button>
+        </div>
+      </div>
+      <button id="btn-start">スタート</button>
+      <div id="best"></div>
+      <div class="help">
+        <p><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
+        <p>12台のF1マシンで首都高を全開バトル。スタート位置は毎回ランダム。順位が下のときほど「追い上げブースト」で最高速が上がり、前の車の真後ろではスリップストリームが効きます。三宅坂JCT・谷町JCTの急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
+      </div>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <div id="pause" class="overlay" hidden>
+    <div class="box">
+      <h2>一時停止</h2>
+      <button id="btn-resume">再開</button>
+      <button id="btn-retry">最初からやり直す</button>
+      <button id="btn-quit">タイトルへ</button>
+    </div>
+  </div>
+
+  <div id="result" class="overlay" hidden>
+    <div class="box wide">
+      <div class="r-head">RESULT</div>
+      <div class="r-pos"><b id="res-pos">1</b><span>位</span></div>
+      <div id="res-time"></div>
+      <div id="res-stats"></div>
+      <table id="res-table"></table>
+      <div class="r-btns">
+        <button id="btn-again">もう一度</button>
+        <button id="btn-title">タイトルへ</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
