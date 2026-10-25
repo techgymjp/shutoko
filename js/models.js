@@ -243,18 +243,19 @@ export function plateTex(key, text, bg, fg, font = 64) {
 // ---------------- レーシングマシン ----------------
 // 前方 = -z, 長さ ≒ 5.6m, 幅 2.0m
 export const TEAMS = [
-  { name: 'SAKURA', body: 0xf3f3f3, accent: 0xe4007f, no: 7 },
-  { name: 'AKANE', body: 0xc8102e, accent: 0xffd200, no: 16 },
-  { name: 'SHIROGANE', body: 0x8f9aa3, accent: 0x00d2be, no: 44 },
-  { name: 'RAIJIN', body: 0x1e2a5a, accent: 0xe10600, no: 1 },
-  { name: 'MIKAN', body: 0xff8000, accent: 0x111111, no: 4 },
-  { name: 'EMERALD', body: 0x005a46, accent: 0xc8e600, no: 14 },
-  { name: 'SORA', body: 0x1265c8, accent: 0xff7fc0, no: 10 },
-  { name: 'KABUTO', body: 0xf0d020, accent: 0x111111, no: 22 },
-  { name: 'SAMURAI', body: 0x111111, accent: 0xd4af37, no: 63 },
-  { name: 'MIDORI', body: 0x37b24d, accent: 0xffffff, no: 23 },
-  { name: 'FUJI', body: 0x6ea8ff, accent: 0xffffff, no: 31 },
-  { name: 'EDO', body: 0x6b2fa0, accent: 0xffffff, no: 81 },
+  // 実在のチームの配色やドライバーの番号に似ないよう、和の色を基調にする
+  { name: 'SAKURA', body: 0xf6f1ee, accent: 0xe4007f, no: 7 },    // 白 × 桜の濃いピンク (自分)
+  { name: 'AKANE', body: 0x8a2433, accent: 0xf2e6d0, no: 12 },     // 臙脂 × 生成り (真っ赤は避ける)
+  { name: 'SHIROGANE', body: 0xd9dde2, accent: 0x7a2a8a, no: 15 }, // 白銀 × 紫
+  { name: 'RAIJIN', body: 0x2b2b6e, accent: 0x7fe0ff, no: 9 },     // 藍 × 稲妻の水色
+  { name: 'MIKAN', body: 0xf6a623, accent: 0x2a6e3a, no: 17 },      // みかん色 × 葉の緑
+  { name: 'EMERALD', body: 0x1aa39a, accent: 0xffffff, no: 19 },   // 青緑 × 白
+  { name: 'SORA', body: 0x87c8f0, accent: 0x1d3d7a, no: 25 },      // 空色 × 紺のライン
+  { name: 'KABUTO', body: 0x6b4226, accent: 0xd8b26e, no: 26 },    // 甲虫の焦げ茶 × 黄土
+  { name: 'SAMURAI', body: 0x2f2f33, accent: 0x5fd3c0, no: 29 },   // 墨 × 薄荷色
+  { name: 'MIDORI', body: 0x8bc34a, accent: 0x3e2a1e, no: 32 },    // 抹茶 × こげ茶
+  { name: 'FUJI', body: 0x5a6b8c, accent: 0xffffff, no: 36 },      // 青鈍 × 雪の白
+  { name: 'EDO', body: 0x4b2a7a, accent: 0xf2c94c, no: 39 },       // 江戸紫 × 山吹
 ];
 
 let wheelGeo, tyreMat;
