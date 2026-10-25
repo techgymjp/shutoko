@@ -33,7 +33,7 @@
       <div class="row"><span class="lbl">次</span><b id="hud-next" class="nm">-</b><small id="hud-nextd"></small></div>
       <div class="row"><span class="lbl">ゴールまで</span><b id="hud-remain">0.0</b><small>km</small></div>
     </div>
-    <canvas id="minimap" width="300" height="220"></canvas>
+    <canvas id="minimap" width="300" height="300"></canvas>
 
     <div id="speedbox">
       <div id="rpm"><i id="rpm-bar"></i></div>
@@ -80,7 +80,11 @@
       </div>
       <div class="t-label">ルートを選ぶ</div>
       <div id="courses"></div>
-      <div class="t-label">マシンの脚質を選ぶ</div>
+      <div class="t-row name-row">
+        <div class="t-label">ドライバー名</div>
+        <input id="driver-name" maxlength="12" placeholder="YOU" autocomplete="off" enterkeyhint="done">
+      </div>
+      <div class="t-label" id="machine-label">あなたのマシン</div>
       <div id="machines"></div>
       <div class="t-row">
         <div class="t-label">時間帯</div>
@@ -94,7 +98,7 @@
       <div id="best"></div>
       <div class="help">
         <p><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
-        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。2〜3番手の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。脚質ごとに仕掛けどころが違います。</p>
+        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。2〜3番手の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。マシンには隠れた<b>脚質</b>（逃げ・先行・差し・追込）があり、心地よい位置で走るとERSがよく溜まります。チーム無線とレース後のコメントから脚質を見抜き、仕掛けどころを探しましょう。</p>
         <p>三宅坂JCT・谷町JCTの急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
       </div>
       <div class="t-credit">道路: © OpenStreetMap contributors（ODbL）　建物: 国土交通省 Project PLATEAU 3D都市モデル（東京都23区）を加工して作成</div>

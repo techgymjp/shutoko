@@ -14,8 +14,9 @@ const KMH = 3.6;
 const VMAX = 340 / KMH;      // 最高速 (m/s)
 const A0 = 12.5;             // 発進加速 (m/s²) 0→100km/h ≒ 2.5 秒
 const BRAKE = 34;            // ブレーキ (m/s²)
-const GRIP = 27;             // 横方向のグリップ限界 (m/s²)
-const CAR_L = 5.3, CAR_W = 1.95;
+const AI_GRIP = 32;          // AI がコーナーで使う横方向の加速度 (m/s²)。プレイヤーが切り込んだ時と同じくらい
+const CAR_L = 5.3, CAR_W = 1.6; // 当たり判定 (見た目より少し細い。真ん中を走られても横をすり抜けられる)
+const RUB_W = 1.95;             // これより近いと車体がこすれて火花が出る
 const EDGE = HALF - 1.0;     // 車の中心が動ける範囲
 const N_CARS = 12;
 const BOOST_MAX = 0.08;      // 最下位のときのスピードボーナス
@@ -48,6 +49,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('shutoko.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('shutoko.' + k, JSON.stringify(v)); } catch { /* 保存できなくても遊べる */ } },
 };
+const esc = (t) => String(t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const fmt = (t) => {
   const m = Math.floor(t / 60), s = t - m * 60;
   return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`;
@@ -63,7 +65,11 @@ const camera = new THREE.PerspectiveCamera(72, 1, 0.12, 20000);
 let G = null; // 1回のレースの状態
 let theme = store.get('theme', 'day');
 let selected = 0;
-let machineKey = store.get('machine', 'sashi');
+const DEBUG = location.search.includes('debug');
+// 本番では脚質は隠れている (走って見抜く)。?debug の時だけ選べる
+let machineKey = DEBUG ? store.get('machine', 'sashi') : 'mystery';
+let driverName = store.get('name', '');
+const nameOf = (r) => (r.player ? (driverName || 'YOU') : r.team.name);
 // ミステリーマシン: 脚質は隠れていて、走りと無線で見抜く。1位になると判明する
 let mystery = store.get('mystery', null); // { style, revealed, races }
 
@@ -133,14 +139,16 @@ function buildTitle() {
   const ms = $('machines');
   ms.innerHTML = '';
   const labels = ['最高速', '加速', 'コーナー', 'ERS 末脚'];
-  const cards = [...MACHINE_KEYS, 'mystery'];
+  const cards = DEBUG ? [...MACHINE_KEYS, 'mystery'] : ['mystery'];
+  $('machine-label').textContent = DEBUG ? 'マシンの脚質を選ぶ（デバッグ）' : 'あなたのマシン';
+  $('driver-name').value = driverName;
   for (const key of cards) {
     const el = document.createElement('button');
     el.className = 'machine' + (key === machineKey ? ' sel' : '') + (key === 'mystery' ? ' mystery' : '');
     if (key === 'mystery') {
       const known = mystery && mystery.revealed ? MACHINES[mystery.style].name : null;
-      el.innerHTML = `<div class="m-name">ミステリー <small>${known ? '脚質: ' + known : '脚質: ？？？'}</small></div>
-        <div class="m-desc">ダービージョッキー方式。脚質は隠れていて、無線とレース後のコメントで見抜く。1位になると判明する。${mystery ? `（${mystery.races}戦）` : ''}</div>
+      el.innerHTML = `<div class="m-name">${DEBUG ? 'ミステリー' : 'SAKURA'} <small>${known ? '脚質: ' + known : '脚質: ？？？'}</small></div>
+        <div class="m-desc">マシンには脚質（逃げ・先行・差し・追込）があり、走って見抜く。チーム無線とレース後のチーフエンジニアのコメントが手がかり。1位になると判明する。${mystery ? `（${mystery.races}戦）` : ''}</div>
         ${mystery ? '<span class="m-new" data-new>新しいマシンに乗り換える</span>' : ''}`;
     } else {
       const m = MACHINES[key];
@@ -166,6 +174,11 @@ for (const b of document.querySelectorAll('#themes button')) {
   b.addEventListener('click', () => { theme = b.dataset.t; store.set('theme', theme); buildTitle(); });
 }
 $('btn-start').addEventListener('click', () => startRace());
+$('driver-name').addEventListener('input', (e) => {
+  driverName = e.target.value.trim().slice(0, 12);
+  store.set('name', driverName);
+});
+$('driver-name').addEventListener('keydown', (e) => e.stopPropagation());
 $('btn-resume').addEventListener('click', () => togglePause(false));
 $('btn-retry').addEventListener('click', () => { closeOverlays(); startRace(); });
 $('btn-quit').addEventListener('click', () => toTitle());
@@ -294,8 +307,6 @@ function startRace() {
   G.ers = G.M.ers;
   world.prebuild(player.s);
   resize();
-  // ミニマップ
-  buildMinimap();
   // スタートシグナル
   $('lights').hidden = false;
   for (const l of document.querySelectorAll('#lights i')) l.className = '';
@@ -308,74 +319,107 @@ function startRace() {
 }
 
 // ---------------- ミニマップ ----------------
-let mini = null;
-function buildMinimap() {
-  const c = G.course;
-  const cv = $('minimap');
-  const W = cv.width, H = cv.height;
-  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
-  for (let i = 0; i < c.N; i += 10) {
-    x0 = Math.min(x0, c.X[i]); x1 = Math.max(x1, c.X[i]);
-    z0 = Math.min(z0, c.Z[i]); z1 = Math.max(z1, c.Z[i]);
-  }
-  const sc = Math.min((W - 30) / (x1 - x0), (H - 30) / (z1 - z0));
-  const ox = (W - (x1 - x0) * sc) / 2, oz = (H - (z1 - z0) * sc) / 2;
-  const P = (x, z) => [ox + (x - x0) * sc, oz + (z - z0) * sc];
-  const bg = document.createElement('canvas');
-  bg.width = W; bg.height = H;
-  const g = bg.getContext('2d');
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-  for (const [w, col] of [[9, '#0c1118'], [5, '#5d6b7a']]) {
-    g.strokeStyle = col;
-    g.lineWidth = w;
-    g.beginPath();
-    for (let i = 0; i < c.N; i += 5) g.lineTo(...P(c.X[i], c.Z[i]));
-    g.stroke();
-  }
-  // トンネル
-  g.strokeStyle = '#2b333d';
-  g.lineWidth = 5;
-  for (const [a, b] of c.tunnels) {
-    g.beginPath();
-    for (let s = a; s <= b; s += 10) { const p = c.at(s); g.lineTo(...P(p.x, p.z)); }
-    g.stroke();
-  }
-  g.font = 'bold 15px "Noto Sans JP", sans-serif';
-  for (const m of c.marks) {
-    if (m.kind === 'ic' && !['高井戸', '渋谷', '霞が関'].includes(m.name)) continue;
-    const p = c.at(m.s);
-    const [x, y] = P(p.x, p.z);
-    g.fillStyle = m.kind === 'jct' ? '#7fe0ff' : '#ffd23a';
-    g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#dfe8f2';
-    const label = m.name.replace('JCT', '');
-    g.textAlign = x > W * 0.6 ? 'right' : 'left';
-    g.fillText(label, x + (x > W * 0.6 ? -7 : 7), y + (m.name === '谷町JCT' ? 14 : -6));
-  }
-  mini = { bg, P };
-}
+// 縮小図: 自分の周り (半径 RADAR m) を進行方向が上になるように拡大して描く + コース全体の進み具合の帯
+const RADAR = 220;
 function drawMinimap() {
   const cv = $('minimap');
   const g = cv.getContext('2d');
-  g.clearRect(0, 0, cv.width, cv.height);
-  g.drawImage(mini.bg, 0, 0);
+  const W = cv.width, H = cv.height;
+  g.clearRect(0, 0, W, H);
+  const c = G.course, P = G.player;
+  const me = c.at(P.s);
+  const cx = W / 2, cy = H * 0.62, sc = (H * 0.58) / RADAR;
+  // 道路の向き a が画面の上になるように回す
+  const ang = me.a - Math.PI / 2;
+  const cs = Math.cos(ang), sn = Math.sin(ang);
+  const T = (x, z) => {
+    const dx = x - me.x, dz = z - me.z;
+    // three.js の (x: 東, z: 南) → 画面 (右, 下)。進行方向を上へ
+    const rx = dx * cs - dz * sn, rz = dx * sn + dz * cs;
+    return [cx + rx * sc, cy + rz * sc];
+  };
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, W, H);
+  g.clip();
+  // 道路
   const p = {};
-  for (const r of G.racers) {
-    if (r.player) continue;
-    G.course.at(r.s, 0, p);
-    const [x, y] = mini.P(p.x, p.z);
-    g.fillStyle = '#' + r.team.body.toString(16).padStart(6, '0');
-    g.strokeStyle = '#000';
-    g.lineWidth = 1.5;
-    g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.fill(); g.stroke();
+  for (const [w, col] of [[14, '#0c1118'], [9, '#55606c']]) {
+    g.strokeStyle = col;
+    g.lineWidth = w;
+    g.lineCap = 'round';
+    g.beginPath();
+    for (let s = Math.max(0, P.s - RADAR * 1.6); s <= Math.min(c.length, P.s + RADAR * 2.2); s += 8) {
+      c.at(s, 0, p);
+      const [x, y] = T(p.x, p.z);
+      g.lineTo(x, y);
+    }
+    g.stroke();
   }
-  G.course.at(G.player.s, 0, p);
-  const [x, y] = mini.P(p.x, p.z);
+  // トンネル区間
+  g.strokeStyle = '#2b333d';
+  g.lineWidth = 9;
+  for (const [a, b] of c.tunnels) {
+    if (b < P.s - RADAR * 1.6 || a > P.s + RADAR * 2.2) continue;
+    g.beginPath();
+    for (let s = Math.max(a, P.s - RADAR * 1.6); s <= Math.min(b, P.s + RADAR * 2.2); s += 8) {
+      c.at(s, 0, p);
+      g.lineTo(...T(p.x, p.z));
+    }
+    g.stroke();
+  }
+  // 出口・JCT の名前
+  g.font = 'bold 15px "Noto Sans JP", sans-serif';
+  g.textAlign = 'left';
+  for (const m of c.marks) {
+    if (Math.abs(m.s - P.s) > RADAR * 2) continue;
+    c.at(m.s, 0, p);
+    const [x, y] = T(p.x, p.z);
+    g.fillStyle = m.kind === 'jct' ? '#7fe0ff' : '#ffd23a';
+    g.fillText(m.name, x + 10, y + 5);
+  }
+  // ライバル (横位置も反映。重なっても見えるよう縁取り)
+  for (const r of G.racers) {
+    if (r.player || Math.abs(r.s - P.s) > RADAR * 2.2) continue;
+    c.at(r.s, r.x * 3, p); // 横位置は見やすいよう少し広げる
+    const [x, y] = T(p.x, p.z);
+    g.fillStyle = '#' + r.team.body.toString(16).padStart(6, '0');
+    g.strokeStyle = '#fff';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill(); g.stroke();
+  }
+  // 自分 (三角)
+  c.at(P.s, P.x * 3, p);
+  const [px, py] = T(p.x, p.z);
   g.fillStyle = '#ff2a6a';
   g.strokeStyle = '#fff';
-  g.lineWidth = 2.5;
-  g.beginPath(); g.arc(x, y, 6.5, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(px, py - 11); g.lineTo(px + 8, py + 8); g.lineTo(px - 8, py + 8); g.closePath();
+  g.fill(); g.stroke();
+  g.restore();
+  // 下の帯: コース全体での位置 (スタート → ゴール)
+  const bx = 14, bw = W - 28, by = H - 14;
+  g.fillStyle = 'rgba(0,0,0,0.55)';
+  g.fillRect(0, by - 12, W, 26);
+  g.strokeStyle = '#5d6b7a';
+  g.lineWidth = 4;
+  g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + bw, by); g.stroke();
+  const fx = (s) => bx + bw * clamp((s - G.startS) / (G.goalS - G.startS), 0, 1);
+  for (const m of c.marks) {
+    if (m.kind !== 'jct') continue;
+    g.fillStyle = '#7fe0ff';
+    g.fillRect(fx(m.s) - 1, by - 6, 2, 12);
+  }
+  for (const r of G.racers) {
+    if (r.player) continue;
+    g.fillStyle = '#' + r.team.body.toString(16).padStart(6, '0');
+    g.beginPath(); g.arc(fx(r.s), by, 3.5, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = '#ff2a6a';
+  g.strokeStyle = '#fff';
+  g.lineWidth = 2;
+  g.beginPath(); g.arc(fx(P.s), by, 5.5, 0, Math.PI * 2); g.fill(); g.stroke();
 }
 
 // ---------------- 演出 ----------------
@@ -564,24 +608,34 @@ function updateAI(dt) {
     } else if (gap < -150) vt *= 1 + Math.min(0.05, (-gap - 150) / 2500);
     const slip = slipFor(car);
     vt += slip * 8;
-    // コーナー手前で減速
+    // コーナー手前で減速 (プレイヤーがハンドルを切り込んだ時と同じくらいまで攻める)
     const look = (car.v * car.v) / (2 * 22) + 25;
     const kmax = c.maxCurv(car.s, look);
-    if (kmax > 1e-4) vt = Math.min(vt, Math.sqrt((GRIP * 0.97) / kmax));
-    // 前の車 (自分も含む) に詰まったら車線変更、無理なら合わせる
+    if (kmax > 1e-4) vt = Math.min(vt, Math.sqrt(AI_GRIP / kmax));
+    // 前の車 (自分も含む) に詰まったら、横にあいている所から抜く。抜けない時だけ速度を合わせる
     let blocker = null;
     for (const o of G.racers) {
       if (o === car) continue;
       const ds = o.s - car.s;
-      if (ds > 0 && ds < 14 + Math.max(0, car.v - o.v) * 1.6 && Math.abs(o.x - car.laneT) < 2.0 && o.v < car.v + 2) {
+      if (ds > 0 && ds < 14 + Math.max(0, car.v - o.v) * 1.6 && Math.abs(o.x - car.x) < CAR_W + 0.15 && o.v < car.v + 2) {
         if (!blocker || ds < blocker.s - car.s) blocker = o;
       }
     }
     if (blocker) {
-      const other = Math.abs(car.laneT - LANES[0]) < 0.5 ? LANES[1] : LANES[0];
-      const free = G.racers.every((o) => o === car || Math.abs(o.x - other) > 2.1 || o.s - car.s < -9 || o.s - car.s > 16);
-      if (free && car.laneTimer < 9) { car.laneT = other; car.laneTimer = 2.5 + Math.random() * 5; }
-      else vt = Math.min(vt, blocker.v - 0.5);
+      const roomAt = (x) => G.racers.every((o) => o === car || o === blocker || Math.abs(o.x - x) > CAR_W + 0.05 || o.s - car.s < -8 || o.s - car.s > 18);
+      // 今狙っているラインがまだ使えるならそのまま (ふらつかないように)
+      const keep = Math.abs(car.laneT - blocker.x) >= CAR_W + 0.1 && roomAt(car.laneT);
+      if (!keep) {
+        // 広くあいている側へ。狭くても車1台ぶん (こすれるくらい) あれば飛び込む
+        const sides = [blocker.x + 2.1, blocker.x - 2.1]
+          .map((x) => clamp(x, -EDGE, EDGE))
+          .filter((x) => Math.abs(x - blocker.x) >= CAR_W + 0.1 && roomAt(x))
+          .sort((p, q) => Math.abs(p - car.x) - Math.abs(q - car.x));
+        if (sides.length) car.laneT = sides[0];
+      }
+      if (Math.abs(car.laneT - blocker.x) < CAR_W + 0.1) vt = Math.min(vt, blocker.v - 0.5);
+      else if (Math.abs(car.x - blocker.x) < CAR_W && blocker.s - car.s < 7) vt = Math.min(vt, blocker.v + 1);
+      car.laneTimer = Math.max(car.laneTimer, 3);
     }
     car.laneTimer -= dt;
     if (car.laneTimer < 0) {
@@ -593,7 +647,7 @@ function updateAI(dt) {
     const sp = car.v / VMAX;
     if (car.finished) vt = car.s > c.length - 120 ? 0 : 30;
     if (!racing && !car.finished) a = 0;
-    else if (car.v < vt) a = Math.min(A0 * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp * 0.9, (vt - car.v) * 3);
+    else if (car.v < vt) a = Math.min(Math.max(1.5, A0 * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp * 0.9), (vt - car.v) * 3);
     else a = -Math.min(26, (car.v - vt) * 2.5 + 2);
     if (Math.abs(car.spin) > 0.25) a = Math.min(a, -9);
     car.v = Math.max(0, car.v + a * dt);
@@ -607,13 +661,37 @@ function updateAI(dt) {
 }
 
 // 車どうしの接触 (大破はしない。押し合い・失速・スピン)
+function rub(a, b, ds, dx) {
+  const sd = Math.sign(dx) || 1; // b は a から見て sd の側
+  a.x = clamp(a.x - sd * 0.015, -EDGE, EDGE);
+  b.x = clamp(b.x + sd * 0.015, -EDGE, EDGE);
+  a.v *= 0.9995;
+  b.v *= 0.9995;
+  const near = Math.abs(a.s - G.player.s) < 150;
+  if (!near || Math.random() < 0.4) return;
+  const pos = worldPos(a, 0.35, ds * 0.5, dx * 0.5);
+  G.effects.sparks(pos, 4, carVel(a), sd);
+  if (a.player || b.player) {
+    G.scraping = 0.15;
+    G.shake = Math.max(G.shake, 0.1);
+    G.rubT = (G.rubT || 0);
+    if (G.t - G.rubT > 2.5) { showAlert('スレスレ!', '', 600); G.rubT = G.t; }
+  }
+}
+
 function collide() {
   const R = G.racers;
   for (let i = 0; i < R.length; i++) {
     for (let j = i + 1; j < R.length; j++) {
       const a = R[i], b = R[j];
       const ds = b.s - a.s, dx = b.x - a.x;
-      if (Math.abs(ds) >= CAR_L || Math.abs(dx) >= CAR_W) continue;
+      if (Math.abs(ds) >= CAR_L - 0.4 || Math.abs(dx) >= RUB_W) continue;
+      if (Math.abs(dx) >= CAR_W) {
+        // スレスレですれ違う: 車体がこすれて火花。少し押し合うだけで減速はわずか
+        rub(a, b, ds, dx);
+        continue;
+      }
+      if (Math.abs(ds) >= CAR_L) continue;
       const pS = CAR_L - Math.abs(ds), pX = CAR_W - Math.abs(dx);
       let impact, rear, front;
       if (pS / CAR_L < pX / CAR_W) {
@@ -769,7 +847,7 @@ function showResult() {
   $('res-notes').innerHTML = `<div class="n-head">📻 チーフエンジニア${G.hidden ? '（脚質: ？？？）' : `（脚質: ${G.M.name}）`}</div>` + notes.map((n) => `<p>${n}</p>`).join('');
   $('res-table').innerHTML = rows.map(({ r, t }, i) => `
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
-    <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? 'YOU (' + r.team.name + ')' : r.team.name}</td>
+    <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? esc(nameOf(r)) + ' (' + r.team.name + ')' : r.team.name}</td>
     <td>${fmt(t)}</td></tr>`).join('');
   $('result').hidden = false;
   Sound.silence();
@@ -781,7 +859,7 @@ function updateTower() {
   const leader = G.order[0];
   el.innerHTML = G.order.map((r) => {
     const gap = r === leader ? 'LEADER' : r.finished ? fmt(r.time) : '+' + ((leader.s - r.s) / Math.max(20, r.v)).toFixed(1);
-    return `<div class="${r.player ? 'me' : ''}"><b>${r.rank}</b><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i><span>${r.player ? 'YOU' : r.team.name.split(' ')[0].slice(0, 6)}</span><em>${gap}</em></div>`;
+    return `<div class="${r.player ? 'me' : ''}"><b>${r.rank}</b><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i><span>${esc(nameOf(r).split(' ')[0].slice(0, 7))}</span><em>${gap}</em></div>`;
   }).join('');
 }
 

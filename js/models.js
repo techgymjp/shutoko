@@ -413,6 +413,8 @@ export function makeF1(team, opt = {}) {
   sh.rotation.x = -Math.PI / 2;
   sh.position.y = 0.02;
   car.add(sh);
+  // 当たり判定に合わせて少し細身に
+  car.scale.x = 0.88;
   return car;
 }
 
