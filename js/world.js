@@ -53,6 +53,15 @@ function adAtlas() {
   });
 }
 
+const polyArea = (pts) => {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length];
+    a += x0 * z1 - x1 * z0;
+  }
+  return Math.abs(a) / 2;
+};
+
 // ---------------- 時間帯 ----------------
 export const THEMES = {
   day: {
@@ -110,6 +119,45 @@ class Geo {
     }
     // 屋上 (UV は窓のない所)
     this.quad(P(-hw, h, hd), P(hw, h, hd), P(hw, h, -hd), P(-hw, h, -hd), [0, 1, 0], [0.01, 0.01, 0.02, 0.01, 0.02, 0.02, 0.01, 0.02], color);
+  }
+  // 輪郭 pts ([[x, z], ...]) を高さ h まで押し出した建物。壁の UV は m 単位 (4m × 3.5m で1周)
+  extrude(pts, h, color) {
+    const n = pts.length;
+    let a2 = 0;
+    for (let i = 0; i < n; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % n];
+      a2 += x0 * z1 - x1 * z0;
+    }
+    const sg = a2 > 0 ? 1 : -1; // 頂点の回り方で法線の向きを決める
+    let u = 0;
+    for (let i = 0; i < n; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % n];
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      if (len < 0.05) continue;
+      const nx = (-(z1 - z0) / len) * sg, nz = ((x1 - x0) / len) * sg;
+      const u1 = u + len / 4, v = h / 3.5;
+      if (sg > 0) this.quad([x1, 0, z1], [x0, 0, z0], [x0, h, z0], [x1, h, z1], [-nx, 0, -nz], [u1, 0, u, 0, u, v, u1, v], color);
+      else this.quad([x0, 0, z0], [x1, 0, z1], [x1, h, z1], [x0, h, z0], [-nx, 0, -nz], [u, 0, u1, 0, u1, v, u, v], color);
+      u = u1;
+    }
+    // 屋根
+    const contour = pts.map(([x, z]) => new THREE.Vector2(x, z));
+    const tris = THREE.ShapeUtils.triangulateShape(contour, []);
+    const base = this.n;
+    for (const [x, z] of pts) {
+      this.pos.push(x, h, z);
+      this.nor.push(0, 1, 0);
+      this.uv.push(0.01, 0.01);
+      if (color) this.col.push(color.r * 0.85, color.g * 0.85, color.b * 0.85);
+    }
+    this.n += n;
+    for (const [a, b, c] of tris) {
+      // 上から見て反時計回り (法線が上) になるように
+      const ax = pts[a][0], az = pts[a][1], bx = pts[b][0], bz = pts[b][1], cx = pts[c][0], cz = pts[c][1];
+      const cross = (bx - ax) * (cz - az) - (bz - az) * (cx - ax);
+      if (cross < 0) this.idx.push(base + a, base + b, base + c);
+      else this.idx.push(base + a, base + c, base + b);
+    }
   }
   // 木の葉 (上下2つの角錐を合わせた形)
   diamond(cx, cy, cz, w, h, yaw, color) {
@@ -349,7 +397,8 @@ export class World {
     // ランドマーク
     const center = c.at(c.length / 2);
     for (const L of c.landmarks) {
-      const o = makeLandmark(L.model, T.night);
+      if (L.crown) this.addCrown(L);
+      const o = L.model && makeLandmark(L.model, T.night);
       if (!o) continue;
       let x = L.x, z = L.z;
       if (L.far) {
@@ -363,33 +412,35 @@ export class World {
         o.traverse((m) => { if (m.material) m.material.fog = false; });
       } else {
         o.rotation.y = c.at(L.s).a - Math.PI / 2;
-        // 線形は概略なので、実際の位置だと道路にかかる建物がある。道路から離して置く
-        [x, z] = this.clearOfRoad(o, L);
-        L.x = x;
-        L.z = z;
       }
       o.position.set(x, 0, z);
       this.scene.add(o);
       if (T.night && !L.far) this.addAviationLight(o, x, z);
     }
+    // 夜は高いビル (100m 以上) の屋上に航空障害灯
+    if (T.night) {
+      const D = c.def.data;
+      for (let ch = 0; ch < D.bidx.length - 1; ch++) {
+        for (const b of this.buildingsIn(ch)) if (b.h >= 100) (this.aviation = this.aviation || []).push([b.cx, b.h + 1, b.cz]);
+      }
+    }
   }
 
-  clearOfRoad(o, L) {
-    const c = this.course;
-    const box = new THREE.Box3().setFromObject(o);
-    const r = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
-    const need = r + 12;
-    if (c.distToRoad(L.x, L.z, need + 30) > need + 15) return [L.x, L.z];
-    const p = c.at(L.s);
-    const off = (L.x - p.x) * p.lx + (L.z - p.z) * p.lz;
-    // 右側 (−) には対向車線がある
-    const side = off >= 0 ? 1 : -1;
-    for (let d = 0; d < 600; d += 5) {
-      const o2 = side > 0 ? Math.max(off, need) + d : Math.min(off, -need - 12) - d;
-      const q = c.at(L.s, o2);
-      if (c.distToRoad(q.x, q.z, need + 30) > need + (side > 0 ? 0 : 12)) return [q.x, q.z];
+  // その場所でいちばん高いビルの屋上に、色の付いた飾り (ニューオータニの青いラウンジ、キャロットタワーの橙の屋上など)
+  addCrown(L) {
+    const D = this.course.def.data;
+    const k = Math.floor(L.s / D.chunk);
+    let best = null;
+    for (let ch = k - 3; ch <= k + 3; ch++) {
+      for (const b of this.buildingsIn(ch)) {
+        if ((b.cx - L.x) ** 2 + (b.cz - L.z) ** 2 < L.r * L.r && (!best || b.h > best.h)) best = b;
+      }
     }
-    return [L.x, L.z];
+    if (!best) return;
+    const r = Math.min(16, Math.sqrt(polyArea(best.pts)) * 0.45);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 7, 24), new THREE.MeshLambertMaterial({ color: L.crown, emissive: new THREE.Color(L.crown).multiplyScalar(this.theme.night ? 0.6 : 0.15) }));
+    m.position.set(best.cx, best.h + 3.5, best.cz);
+    this.scene.add(m);
   }
 
   addAviationLight(o, x, z) {
@@ -599,48 +650,55 @@ export class World {
   }
 
   // ---------------- 街並み ----------------
+  // PLATEAU の建物 (輪郭を高さぶん押し出す) と公園の木
   buildCity(g, k, s0, s1) {
     const c = this.course;
+    const D = c.def.data;
     const r = rng(1000 + k * 7919);
     const b0 = new Geo(), b1 = new Geo(), trees = new Geo(), boards = new Geo(), roof = new Geo();
     const col = new THREE.Color();
+    // このチャンクの道路の点 (看板の向きを決める)
+    const road = [];
+    for (let s = s0; s <= s1; s += 20) road.push(c.at(s));
+    const nearRoad = (x, z) => {
+      let best = 1e18, bp = road[0];
+      for (const q of road) {
+        const d = (q.x - x) ** 2 + (q.z - z) ** 2;
+        if (d < best) { best = d; bp = q; }
+      }
+      return [Math.sqrt(best), bp];
+    };
+    const ch = Math.floor(s0 / D.chunk);
+    for (const b of this.buildingsIn(ch)) {
+      const { h, pts, cx, cz, id } = b;
+      const rb = rng(id * 7 + 3);
+      const style = h > 45 || rb() < 0.25 ? 1 : 0;
+      const pal = style ? GLASS : FACADE;
+      col.set(pal[Math.floor(rb() * pal.length)]);
+      col.multiplyScalar(0.85 + rb() * 0.25);
+      (style ? b1 : b0).extrude(pts, h, col);
+      // 屋上: 広告看板・給水塔・アンテナ
+      const roll = rb();
+      const [dr, q] = nearRoad(cx, cz);
+      if (dr < 80 && h > 9 && h < 70 && roll < 0.3) {
+        const side = (cx - q.x) * q.lx + (cz - q.z) * q.lz > 0 ? 1 : -1;
+        const span = Math.sqrt(polyArea(pts));
+        this.billboard(boards, rb, { x: cx, z: cz }, side, span, span, h, yawOf(q.a));
+      } else if (roll < 0.5 && h < 120) {
+        roof.box(cx + (rb() - 0.5) * 4, h, cz + (rb() - 0.5) * 4, 3 + rb() * 4, 2 + rb() * 2.5, 3 + rb() * 4, rb() * 3, ROOFC[Math.floor(rb() * ROOFC.length)]);
+      }
+      if (h > 60 && rb() < 0.6) roof.box(cx, h, cz, 0.6, 8 + rb() * 10, 0.6, 0, AERIAL);
+    }
+    // 公園の木 (建物のない所)
     const p = {};
-    const ROWS = [30, 58, 92, 130, 175, 230, 300, 380];
-    const lm = c.landmarks.filter((L) => !L.far);
     for (const side of [1, -1]) {
-      for (const [ri, off0] of ROWS.entries()) {
-        const gap = 18 + ri * 7;
-        for (let s = s0 + r() * gap; s < s1; s += gap + r() * gap * 0.6) {
-          const off = side > 0 ? off0 + r() * 10 : OPP_OFF - off0 - r() * 10;
-          c.at(s, off, p);
-          const w = 12 + r() * (16 + ri * 4), d = 12 + r() * 18;
-          const rad = Math.max(w, d) * 0.6;
-          if (c.distToRoad(p.x, p.z) < 26 + rad) continue;
-          const park = c.inPark(p.x, p.z, rad * 0.5);
-          if (park) {
-            if (park.kind === 'park' && ri < 6) this.addTrees(trees, r, p.x, p.z, 3 + Math.floor(r() * 4));
-            continue;
-          }
-          if (lm.some((L) => (L.x - p.x) ** 2 + (L.z - p.z) ** 2 < 80 * 80)) continue;
-          // 高さ: 幹線沿いは中層, 奥は低層住宅。超高層の地区は高く
-          let h = ri < 2 ? 14 + r() * 32 : 7 + r() * 18 + (r() < 0.12 ? 20 : 0);
-          const dist = c.district(p.x, p.z);
-          if (dist) {
-            const [lo, hi] = dist.d.h;
-            if (r() < 0.25 + dist.w * 0.6) h = Math.max(h, lo + (hi - lo) * r() * (0.4 + dist.w * 0.6));
-          }
-          h = Math.round(h / 3.5) * 3.5 + 1;
-          const style = h > 50 || r() < 0.3 ? 1 : 0;
-          const pal = style ? GLASS : FACADE;
-          col.set(pal[Math.floor(r() * pal.length)]);
-          col.multiplyScalar(0.85 + r() * 0.25);
-          const yaw = yawOf(p.a) + (r() - 0.5) * 0.1;
-          (style ? b1 : b0).box(p.x, 0, p.z, w, h, d, yaw, col, true);
-          // 屋上: 広告看板・給水塔・アンテナ
-          const roll = r();
-          if (ri < 3 && h < 70 && roll < 0.3) this.billboard(boards, r, p, side, w, d, h, yaw);
-          else if (roll < 0.55) roof.box(p.x + (r() - 0.5) * w * 0.4, h, p.z + (r() - 0.5) * d * 0.4, 3 + r() * 4, 2 + r() * 2.5, 3 + r() * 4, yaw, ROOFC[Math.floor(r() * ROOFC.length)]);
-          if (h > 60 && r() < 0.5) roof.box(p.x, h, p.z, 0.6, 8 + r() * 10, 0.6, 0, AERIAL);
+      for (let off = 22; off < 360; off += 26) {
+        for (let s = s0 + r() * 20; s < s1; s += 22 + r() * 10) {
+          c.at(s, side > 0 ? off + r() * 8 : OPP_OFF - off - r() * 8, p);
+          const park = c.inPark(p.x, p.z);
+          if (!park || park.kind !== 'park') continue;
+          if (this.occupied(p.x, p.z) || c.distToRoad(p.x, p.z) < 24) continue;
+          this.addTrees(trees, r, p.x, p.z, 2 + Math.floor(r() * 3));
         }
       }
     }
@@ -649,6 +707,50 @@ export class World {
     if (trees.n) g.add(trees.mesh(this.M.tree));
     if (boards.n) g.add(boards.mesh(this.M.board));
     if (roof.n) g.add(roof.mesh(this.M.tree));
+  }
+
+  // course-data.js の建物を取り出す。b = [高さ×2, 点の数, x0×2, z0×2, Δx×2, Δz×2, ...] の並び
+  buildingsIn(ch) {
+    const D = this.course.def.data;
+    if (ch < 0 || ch >= D.bidx.length - 1) return [];
+    const out = [];
+    const B = D.b;
+    let i = D.bidx[ch];
+    const end = D.bidx[ch + 1];
+    while (i < end) {
+      const id = i;
+      const h = B[i] / 2, n = B[i + 1];
+      let x = B[i + 2], z = B[i + 3];
+      const pts = [[x / 2, z / 2]];
+      i += 4;
+      for (let j = 1; j < n; j++) {
+        x += B[i]; z += B[i + 1];
+        pts.push([x / 2, z / 2]);
+        i += 2;
+      }
+      let cx = 0, cz = 0;
+      for (const [px, pz] of pts) { cx += px; cz += pz; }
+      out.push({ id, h, pts, cx: cx / n, cz: cz / n });
+    }
+    return out;
+  }
+
+  // 建物のある所 (10m 四方のマス)。公園の木を建物に重ねないため
+  occupied(x, z) {
+    if (!this.occ) {
+      this.occ = new Set();
+      const D = this.course.def.data;
+      for (let ch = 0; ch < D.bidx.length - 1; ch++) {
+        for (const b of this.buildingsIn(ch)) {
+          let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+          for (const [px, pz] of b.pts) { x0 = Math.min(x0, px); x1 = Math.max(x1, px); z0 = Math.min(z0, pz); z1 = Math.max(z1, pz); }
+          for (let gx = Math.floor(x0 / 10); gx <= Math.floor(x1 / 10); gx++) {
+            for (let gz = Math.floor(z0 / 10); gz <= Math.floor(z1 / 10); gz++) this.occ.add(gx * 100000 + gz);
+          }
+        }
+      }
+    }
+    return this.occ.has(Math.floor(x / 10) * 100000 + Math.floor(z / 10));
   }
 
   // 屋上の広告看板 (道路から見える向き)。広告の絵は1枚のテクスチャに 4×4 で並べてある

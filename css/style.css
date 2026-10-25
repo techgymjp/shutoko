@@ -55,7 +55,7 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 #speedbox .gear { text-align: center; }
 #speedbox .gear small { display: block; color: var(--sub); font-size: 10px; font-family: var(--num); }
 #speedbox .gear b { font-family: var(--num); font-size: 40px; color: var(--led); line-height: 1; }
-#boost { position: absolute; right: 16px; bottom: 132px; background: linear-gradient(90deg, #ff2a6a, #ff8a00); padding: 4px 12px; border-radius: 20px; font-size: 13px; opacity: 0; transform: translateX(20px); transition: all 0.3s; }
+#boost { position: absolute; right: 16px; bottom: 160px; background: linear-gradient(90deg, #ff2a6a, #ff8a00); padding: 4px 12px; border-radius: 20px; font-size: 13px; opacity: 0; transform: translateX(20px); transition: all 0.3s; }
 #boost.on { opacity: 1; transform: none; }
 #boost span { font-family: var(--num); font-weight: 800; }
 #boost small { font-size: 10px; }
@@ -168,6 +168,8 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 #best { text-align: center; color: var(--led); font-size: 14px; min-height: 20px; }
 .help { font-size: 13px; color: #c4d0dc; line-height: 1.7; background: rgba(0,0,0,0.35); border-radius: 10px; padding: 8px 14px; margin-top: 10px; }
 .help p { margin: 6px 0; }
+#credit { position: absolute; right: 8px; bottom: 2px; font-size: 10px; color: rgba(255,255,255,0.55); pointer-events: none; text-shadow: 0 1px 2px #000; }
+.t-credit { text-align: center; font-size: 11px; color: var(--sub); margin-top: 10px; }
 #toast { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 8px 18px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 #toast.show { opacity: 1; }
 

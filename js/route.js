@@ -1,4 +1,4 @@
-// コースの中心線 (緯度経度の通過点 → 2m 間隔の滑らかな中心線)
+// コースの中心線 (course-data.js の道路の線 → 2m 間隔)
 // 座標系: x = 東, z = 南 (three.js), y = 上。距離 s はスタートからの道のり (m)
 
 export const STEP = 2;
@@ -14,54 +14,25 @@ export function rng(seed) {
   };
 }
 
-const smooth = (t) => t * t * (3 - 2 * t);
-
 export class Course {
   constructor(def) {
     this.def = def;
-    const [lat0, lon0] = def.wp[0];
-    this.lat0 = lat0;
-    this.lon0 = lon0;
-    this.kx = 111320 * Math.cos((lat0 * Math.PI) / 180);
+    const D = def.data;
+    [this.lat0, this.lon0] = D.origin;
+    this.kx = 111320 * Math.cos((this.lat0 * Math.PI) / 180);
     this.kz = 110574;
-    const P = def.wp.map(([la, lo, h, f]) => ({ ...this.project(la, lo), h, f }));
-
-    // centripetal Catmull-Rom で細かく分割 (通過点ごとの道のりも記録)
-    const dense = [];
-    const wpIdx = [];
-    for (let i = 0; i < P.length - 1; i++) {
-      const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
-      const n = Math.max(4, Math.ceil(Math.hypot(p2.x - p1.x, p2.z - p1.z) / 1));
-      wpIdx.push(dense.length);
-      for (let j = 0; j < n; j++) dense.push(cr(p0, p1, p2, p3, j / n));
-    }
-    wpIdx.push(dense.length);
-    dense.push({ x: P[P.length - 1].x, z: P[P.length - 1].z });
-
-    const acc = [0];
-    for (let i = 1; i < dense.length; i++) acc.push(acc[i - 1] + Math.hypot(dense[i].x - dense[i - 1].x, dense[i].z - dense[i - 1].z));
-    this.length = acc[acc.length - 1];
-    this.wpS = wpIdx.map((i) => acc[i]);
-
-    // 等間隔に取り直す
+    // course-data.js の 5m 間隔の点を 2m 間隔に取り直す
+    const n0 = D.x.length;
+    this.length = (n0 - 1) * D.step;
     const N = Math.floor(this.length / STEP) + 1;
     this.N = N;
     const X = new Float32Array(N), Z = new Float32Array(N), Y = new Float32Array(N);
-    let k = 0;
     for (let i = 0; i < N; i++) {
-      const s = i * STEP;
-      while (k < acc.length - 2 && acc[k + 1] < s) k++;
-      const t = (s - acc[k]) / Math.max(1e-6, acc[k + 1] - acc[k]);
-      X[i] = dense[k].x + (dense[k + 1].x - dense[k].x) * t;
-      Z[i] = dense[k].z + (dense[k + 1].z - dense[k].z) * t;
-    }
-    // 高さ: 通過点の間を滑らかにつなぐ
-    let w = 0;
-    for (let i = 0; i < N; i++) {
-      const s = i * STEP;
-      while (w < this.wpS.length - 2 && this.wpS[w + 1] < s) w++;
-      const t = Math.min(1, Math.max(0, (s - this.wpS[w]) / (this.wpS[w + 1] - this.wpS[w])));
-      Y[i] = P[w].h + (P[w + 1].h - P[w].h) * smooth(t);
+      const f = Math.min(n0 - 1.0001, (i * STEP) / D.step);
+      const k = Math.floor(f), t = f - k;
+      X[i] = D.x[k] + (D.x[k + 1] - D.x[k]) * t;
+      Z[i] = D.z[k] + (D.z[k + 1] - D.z[k]) * t;
+      Y[i] = D.h[k] + (D.h[k + 1] - D.h[k]) * t;
     }
     // 方位と曲率
     const A = new Float32Array(N);
@@ -80,31 +51,19 @@ export class Course {
     }
     this.X = X; this.Y = Y; this.Z = Z; this.A = A; this.K = K;
 
-    // トンネル区間
-    this.tunnels = [];
-    P.forEach((p, i) => {
-      if (p.f === 'T' && i < P.length - 1) {
-        const last = this.tunnels[this.tunnels.length - 1];
-        if (last && Math.abs(last[1] - this.wpS[i]) < 1) last[1] = this.wpS[i + 1];
-        else this.tunnels.push([this.wpS[i], this.wpS[i + 1]]);
-      }
-    });
-
-    const near = (at) => this.nearest(this.project(at[0], at[1]));
-    this.sections = (def.sections || []).map((x) => ({ ...x, s: near(x.at) })).sort((a, b) => a.s - b.s);
-    this.marks = (def.marks || []).map((x) => ({ ...x, s: near(x.at) })).sort((a, b) => a.s - b.s);
-    this.routeNo = (def.routeNo || []).map((x) => ({ ...x, s: near(x.from) })).sort((a, b) => a.s - b.s);
+    this.tunnels = D.tunnels.map((t) => [...t]);
+    // 区間・出口の位置: OSM の出口・JCT の名前 / 緯度経度 / ゴールからの距離
+    const junc = new Map(D.junctions);
+    const posOf = (x) => x.junction != null ? junc.get(x.junction) ?? 0
+      : x.fromEnd != null ? this.length - x.fromEnd
+        : this.nearest(this.project(x.at[0], x.at[1]));
+    this.sections = (def.sections || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
+    this.marks = (def.marks || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
+    this.routeNo = (def.routeNo || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     this.parks = (def.parks || []).map((x) => ({ ...x, ...this.project(x.lat, x.lon) }));
-    this.districts = (def.districts || []).map((x) => ({ ...x, ...this.project(x.lat, x.lon) }));
     this.landmarks = (def.landmarks || []).map((x) => {
       const L = { ...x, ...this.project(x.lat, x.lon) };
       L.s = this.nearest(L);
-      // side: 道路からの横位置 (左が +) を指定したものは、道路に沿わせて置く
-      if (x.side) {
-        const p = this.at(L.s, x.side);
-        L.x = p.x;
-        L.z = p.z;
-      }
       return L;
     });
 
@@ -212,26 +171,4 @@ export class Course {
     return null;
   }
 
-  district(x, z) {
-    let best = null, bw = 0;
-    for (const d of this.districts) {
-      const w = 1 - Math.hypot(d.x - x, d.z - z) / d.r;
-      if (w > bw) { bw = w; best = d; }
-    }
-    return best ? { d: best, w: bw } : null;
-  }
-}
-
-function cr(p0, p1, p2, p3, t) {
-  // centripetal Catmull-Rom (alpha = 0.5)
-  const d = (a, b) => Math.max(1e-4, Math.pow(Math.hypot(b.x - a.x, b.z - a.z), 0.5));
-  const t0 = 0, t1 = t0 + d(p0, p1), t2 = t1 + d(p1, p2), t3 = t2 + d(p2, p3);
-  const u = t1 + (t2 - t1) * t;
-  const L = (a, b, ta, tb) => {
-    const k = tb - ta < 1e-6 ? 0 : (u - ta) / (tb - ta);
-    return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k };
-  };
-  const A1 = L(p0, p1, t0, t1), A2 = L(p1, p2, t1, t2), A3 = L(p2, p3, t2, t3);
-  const B1 = L(A1, A2, t0, t2), B2 = L(A2, A3, t1, t3);
-  return L(B1, B2, t1, t2);
 }
