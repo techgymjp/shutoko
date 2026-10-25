@@ -43,6 +43,8 @@ def proj(lat, lon):
 P = [proj(p[0], p[1]) for p in raw]
 def raw_height(p):
     bridge, tunnel, layer = p[2], p[3], p[4]
+    if len(p) > 8 and p[8]:
+        return p[8]  # レインボーブリッジなど、高さを指定した橋
     if tunnel:
         return -10 if layer > -2 else -14
     if bridge:
@@ -70,8 +72,9 @@ for i in range(N):
     t = (s - acc[k]) / max(1e-6, acc[k + 1] - acc[k])
     xs.append(P[k][0] + (P[k + 1][0] - P[k][0]) * t)
     zs.append(P[k][1] + (P[k + 1][1] - P[k][1]) * t)
-    hs.append(H[k] if t < 0.5 else H[k + 1])
-    ts.append(T[k] if T[k] == T[k + 1] else (T[k] if t < 0.5 else T[k + 1]))
+    # 橋・トンネルの印は点 k から次の点までの区間のもの
+    hs.append(H[k])
+    ts.append(T[k])
 def smooth(v, r, n=1):
     for _ in range(n):
         out = []

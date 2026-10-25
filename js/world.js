@@ -3,7 +3,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { rng, STEP } from './route.js';
 import {
   asphaltTex, concreteTex, barrierTex, tunnelWallTex, windowTex, signTex, bannerTex, checkerTex,
-  plateTex, makeLandmark, makeTechGymBoard, mat, canvasTex,
+  plateTex, makeLandmark, makeTechGymBoard, makePlane, mat, canvasTex,
 } from './models.js';
 
 // 道路の寸法 (m)。横位置は進行方向の左が +
@@ -450,7 +450,7 @@ export class World {
         z = center.z + (dz / d) * D;
         o.traverse((m) => { if (m.material) m.material.fog = false; });
       } else {
-        o.rotation.y = c.at(L.s).a - Math.PI / 2;
+        o.rotation.y = c.at(L.s).a - Math.PI / 2 + (L.turn || 0);
         if (L.face) {
           // 正面 (+z) を指定の地点へ向ける
           const f = c.project(L.face[0], L.face[1]);
@@ -539,6 +539,24 @@ export class World {
     if (this.clouds) this.clouds.position.set(camPos.x * 0.7, 0, camPos.z * 0.7);
     this.buildAviation();
     if (this.avPoints) this.avPoints.material.opacity = Math.sin(t * 3) > 0 ? 1 : 0.15;
+    // 羽田へ降りる飛行機 (コースで指定した進入経路を繰り返し飛ぶ)
+    if (this.course.def.planes && !this.planes) {
+      this.planes = [];
+      const [a, b] = this.course.def.planes.map(([la, lo, h]) => ({ ...this.course.project(la, lo), h }));
+      for (let i = 0; i < 3; i++) {
+        const m = makePlane(this.theme.night);
+        m.scale.setScalar(1.6); // 頭上をかすめる迫力が出るよう少し大きめに
+        m.traverse((o) => { if (o.material) o.material.fog = false; });
+        this.scene.add(m);
+        this.planes.push({ m, a, b, off: i / 3 });
+      }
+    }
+    for (const pl of this.planes || []) {
+      const k = ((t / 70) + pl.off) % 1; // 70 秒で進入経路を1回
+      const { a, b } = pl;
+      pl.m.position.set(a.x + (b.x - a.x) * k, a.h + (b.h - a.h) * k, a.z + (b.z - a.z) * k);
+      pl.m.rotation.set(Math.atan2(a.h - b.h, Math.hypot(b.x - a.x, b.z - a.z)) * 0.6, Math.atan2(-(b.x - a.x), -(b.z - a.z)), 0, 'YXZ');
+    }
     // アドバルーンが風でゆっくり揺れる
     for (const b of this.balloons || []) {
       b.rotation.z = Math.sin(t * 0.5) * 0.03;
@@ -562,7 +580,8 @@ export class World {
       this.buildRoad(g, a, b, tun);
     }
     this.buildPiersAndLamps(g, s0, s1);
-    this.buildCity(g, k, s0, s1);
+    // 区間がまるごとトンネルの中なら、地上の街は見えないので作らない
+    if (!this.course.tunnels.some((t) => t[0] <= s0 - 150 && t[1] >= s1 + 150)) this.buildCity(g, k, s0, s1);
     this.buildSigns(g, s0, s1);
     return g;
   }

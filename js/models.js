@@ -489,6 +489,73 @@ function signboard(key, w, h, draw, night) {
 }
 
 const MODELS = {
+  // レインボーブリッジの主塔 (白い門形、高さ約126m) とケーブル。+x が橋の方向
+  rbtower(night) {
+    const g = new THREE.Group();
+    const white = new THREE.MeshLambertMaterial({ color: 0xf2f2ee, emissive: night ? 0x5a6a80 : 0x000000 });
+    for (const sz of [-12, 12]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(6, 126, 5), white);
+      leg.position.set(0, 63, sz);
+      g.add(leg);
+    }
+    for (const y of [60, 100, 123]) {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 30), white);
+      beam.position.set(0, y, 0);
+      g.add(beam);
+    }
+    // 主ケーブル (塔から両側へ垂れる)
+    const cable = new THREE.MeshBasicMaterial({ color: night ? 0xc8d8ff : 0xdadada });
+    for (const sz of [-12, 12]) {
+      for (const dir of [-1, 1]) {
+        const pts = [];
+        for (let i = 0; i <= 12; i++) {
+          const t = i / 12;
+          pts.push(new THREE.Vector3(dir * t * 280, 124 - 70 * Math.sin(t * Math.PI * 0.5), sz));
+        }
+        const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.8, 5), cable);
+        g.add(tube);
+      }
+    }
+    if (night) {
+      // 夜はライトアップ (白い光の粒)
+      const lights = [];
+      for (let i = 0; i <= 40; i++) lights.push(0, 2 + i * 3, -12, 0, 2 + i * 3, 12);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(lights, 3));
+      g.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 3, sizeAttenuation: false })));
+    }
+    return g;
+  },
+  // お台場の球体展望室のあるビル (格子の骨組みと銀色の球)
+  odaibasphere(night) {
+    const g = new THREE.Group();
+    const frame = mat(0xd8dde2);
+    for (const sx of [-40, 40]) g.add(texBoxColor(30, 120, 60, night, sx));
+    for (const y of [30, 60, 90, 118]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(110, 4, 10), frame);
+      b.position.set(0, y, 0);
+      g.add(b);
+    }
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(16, 24, 16), new THREE.MeshPhongMaterial({ color: 0xc8ccd2, shininess: 90, emissive: night ? 0x404858 : 0 }));
+    ball.position.set(0, 100, 0);
+    g.add(ball);
+    return g;
+  },
+  // 両国国技館 (緑青の大屋根)
+  kokugikan() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(110, 18, 110), mat(0xd8cdb8));
+    body.position.y = 9;
+    g.add(body);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(82, 22, 4, 1), mat(0x4f8f7a));
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = 29;
+    g.add(roof);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(34, 8, 34), mat(0x4f8f7a));
+    top.position.y = 42;
+    g.add(top);
+    return g;
+  },
   // 明治記念館: 和風の本館 (緑青の銅板屋根) と庭園
   meijikinenkan(night) {
     const g = new THREE.Group();
@@ -1105,12 +1172,14 @@ const MODELS = {
     return g;
   },
   skytree(night) {
+    // 白い鉄骨の塔 (光で陰影が付くように)。展望デッキは濃い色。近くのコースでは実寸大
     const g = new THREE.Group();
-    const m = new THREE.MeshBasicMaterial({ color: night ? 0x8fb8ff : 0xd8e2ea, fog: false });
+    const steel = new THREE.MeshLambertMaterial({ color: 0xb8c4cf, emissive: night ? 0x3a5a9a : 0x1a2028, fog: false });
+    const deck = new THREE.MeshLambertMaterial({ color: 0x55657a, emissive: night ? 0x8fb8ff : 0x000000, fog: false });
     const pts = [new THREE.Vector2(0, 0), new THREE.Vector2(34, 0), new THREE.Vector2(16, 300), new THREE.Vector2(10, 450), new THREE.Vector2(3, 634), new THREE.Vector2(0, 634)];
-    g.add(new THREE.Mesh(new THREE.LatheGeometry(pts, 8), m));
+    g.add(new THREE.Mesh(new THREE.LatheGeometry(pts, 12), steel));
     for (const [y, r] of [[350, 22], [450, 14]]) {
-      const d = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 14, 12), m);
+      const d = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 16, 16), deck);
       d.position.y = y;
       g.add(d);
     }
@@ -1139,6 +1208,44 @@ const MODELS = {
     return g;
   },
 };
+
+function texBoxColor(w, h, d, night, x) {
+  const m = texBox(w, h, d, night, 1, 0xd8dde2);
+  m.position.x = x;
+  return m;
+}
+
+// 羽田へ降りる旅客機 (前 = -z)
+export function makePlane(night) {
+  const g = new THREE.Group();
+  const white = new THREE.MeshLambertMaterial({ color: 0xf4f6f8, emissive: night ? 0x303438 : 0 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 60, 12), white);
+  body.rotation.x = Math.PI / 2;
+  g.add(body);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(3, 12, 8), white);
+  nose.position.z = -30;
+  g.add(nose);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(60, 0.8, 9), white);
+  wing.position.z = 2;
+  g.add(wing);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(20, 0.6, 5), white);
+  tail.position.z = 27;
+  g.add(tail);
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.6, 11, 7), new THREE.MeshLambertMaterial({ color: 0x1d4fa0 }));
+  fin.position.set(0, 6, 27);
+  g.add(fin);
+  if (night) {
+    for (const [x, c] of [[-30, 0xff2020], [30, 0x20ff40]]) {
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.8, 6, 4), new THREE.MeshBasicMaterial({ color: c }));
+      l.position.set(x, 0, 2);
+      g.add(l);
+    }
+    const land = new THREE.Mesh(new THREE.SphereGeometry(1.2, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    land.position.set(0, -2, -24);
+    g.add(land);
+  }
+  return g;
+}
 
 // 首都高の左側に立てるテックジムの広告看板 (幅 14m)。+z が近づいてくる車の方
 export function makeTechGymBoard(night) {

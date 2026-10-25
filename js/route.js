@@ -69,6 +69,12 @@ export class Course {
       L.s = this.nearest(L);
       // 1周のコース: ゴールのあとの区間 (スタートの先と同じ場所) ではなく、1周目の位置を使う
       if (D.loop && L.s > D.loop) L.s -= D.loop;
+      // off: 道路からの横位置 (左が +) を指定したものは道路に合わせて置く (橋の主塔など)
+      if (x.off != null) {
+        const q = this.at(L.s, x.off);
+        L.x = q.x;
+        L.z = q.z;
+      }
       return L;
     });
 
