@@ -23,19 +23,21 @@ const BOOST_MAX = 0.08;      // 最下位のときのスピードボーナス
 // 先頭の重圧: トップに立って LEAD_GRACE 秒たつと LEAD_PEN_T 秒のあいだ最高速が脚質ごとの割合だけ下がる
 // (先頭は風よけがない)。ゴール前 FINAL_FREE m からは起きない
 const LEAD_GRACE = 2.5, LEAD_PEN_T = 12, LEAD_CD = 6, FINAL_FREE = 500;
+// 奥の手 (オーバーテイクモード): 自分がトップの時、すぐ後ろの車が ERS 全開で抜きに来る
+const ATTACK_T = 7, ATTACK_BOOST = 0.13, ATTACK_GAP = 22; // ATTACK_GAP: 次の奥の手までの秒数 (全車共通)
 const ERS_SEC = 8;           // ERS 1 本ぶんで全開にできる秒数
 // マシンの脚質 (ダービージョッキーの逃げ・先行・差し・追込)
 // band: 走っていて心地よい順位の範囲 (0 = 先頭, 1 = 最後尾)。この範囲だと ERS がよく溜まり、
 // 前に出すぎるとマシンが熱を持って回生できない。leadPen: 先頭の重圧で下がる最高速の割合
 const MACHINES = {
   nige: { name: '逃げ', vmax: 350, accel: 1.08, grip: 29, ers: 0.5, ersPow: 0.07, band: [0, 0.05], leadPen: 0.05,
-    desc: '先頭で風を受けても落ちにくい。ERSは短い。スタートから前へ出て押し切る。', stats: [5, 5, 5, 1] },
+    desc: '先頭で風を受けても落ちにくい。ERSは短い。スタートから前へ出て押し切る。' },
   senko: { name: '先行', vmax: 344, accel: 1.04, grip: 28, ers: 0.8, ersPow: 0.09, band: [0.08, 0.3], leadPen: 0.1,
-    desc: '2〜4番手が心地よい。前の集団で風よけを使い、残り1kmで抜け出す。', stats: [5, 4, 4, 2] },
+    desc: '2〜4番手が心地よい。前の集団で風よけを使い、残り1kmで抜け出す。' },
   sashi: { name: '差し', vmax: 338, accel: 1.0, grip: 27, ers: 1.1, ersPow: 0.11, band: [0.35, 0.65], leadPen: 0.12,
-    desc: '中団（5〜8番手）でERSを溜め、ゴール前で一気に差す。', stats: [4, 4, 4, 4] },
+    desc: '中団（5〜8番手）でERSを溜め、ゴール前で一気に差す。' },
   oikomi: { name: '追込', vmax: 332, accel: 0.97, grip: 26, ers: 1.6, ersPow: 0.13, band: [0.7, 1], leadPen: 0.14,
-    desc: '後方で我慢するほどERSが満ちる。最後の直線で大外からまくる。', stats: [3, 3, 3, 5] },
+    desc: '後方で我慢するほどERSが満ちる。最後の直線で大外からまくる。' },
 };
 const MACHINE_KEYS = Object.keys(MACHINES);
 
@@ -66,12 +68,24 @@ let G = null; // 1回のレースの状態
 let theme = store.get('theme', 'day');
 let selected = 0;
 const DEBUG = location.search.includes('debug');
-// 本番では脚質は隠れている (走って見抜く)。?debug の時だけ選べる
-let machineKey = DEBUG ? store.get('machine', 'sashi') : 'mystery';
 let driverName = store.get('name', '');
 const nameOf = (r) => (r.player ? (driverName || 'YOU') : r.team.name);
-// ミステリーマシン: 脚質は隠れていて、走りと無線で見抜く。1位になると判明する
-let mystery = store.get('mystery', null); // { style, revealed, races }
+// ドライバーごとのデータ (名前ごとに保存)。脚質は最初にランダムで決まり、隠れている。1位になると判明する
+// { style, revealed, races, wins, best: { コースid: { time, pos } } }
+function profile(name = driverName || 'YOU') {
+  const all = store.get('profiles', {});
+  if (!all[name]) {
+    all[name] = { style: MACHINE_KEYS[Math.floor(Math.random() * MACHINE_KEYS.length)], revealed: false, races: 0, wins: 0, best: {} };
+    store.set('profiles', all);
+  }
+  return all[name];
+}
+function saveProfile(pr, name = driverName || 'YOU') {
+  const all = store.get('profiles', {});
+  all[name] = pr;
+  store.set('profiles', all);
+}
+
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -135,48 +149,19 @@ function buildTitle() {
   for (const b of document.querySelectorAll('#themes button')) {
     b.classList.toggle('sel', b.dataset.t === theme);
   }
-  // 脚質
-  const ms = $('machines');
-  ms.innerHTML = '';
-  const labels = ['最高速', '加速', 'コーナー', 'ERS 末脚'];
-  const cards = DEBUG ? [...MACHINE_KEYS, 'mystery'] : ['mystery'];
-  $('machine-label').textContent = DEBUG ? 'マシンの脚質を選ぶ（デバッグ）' : 'あなたのマシン';
   $('driver-name').value = driverName;
-  for (const key of cards) {
-    const el = document.createElement('button');
-    el.className = 'machine' + (key === machineKey ? ' sel' : '') + (key === 'mystery' ? ' mystery' : '');
-    if (key === 'mystery') {
-      const known = mystery && mystery.revealed ? MACHINES[mystery.style].name : null;
-      el.innerHTML = `<div class="m-name">${DEBUG ? 'ミステリー' : 'SAKURA'} <small>${known ? '脚質: ' + known : '脚質: ？？？'}</small></div>
-        <div class="m-desc">マシンには脚質（逃げ・先行・差し・追込）があり、走って見抜く。チーム無線とレース後のチーフエンジニアのコメントが手がかり。1位になると判明する。${mystery ? `（${mystery.races}戦）` : ''}</div>
-        ${mystery ? '<span class="m-new" data-new>新しいマシンに乗り換える</span>' : ''}`;
-    } else {
-      const m = MACHINES[key];
-      el.innerHTML = `<div class="m-name">${m.name}</div><div class="m-desc">${m.desc}</div>` +
-        m.stats.map((v, i) => `<div class="m-stat"><span>${labels[i]}</span>${'<i class="f"></i>'.repeat(v)}${'<i></i>'.repeat(5 - v)}</div>`).join('');
-    }
-    el.addEventListener('click', (e) => {
-      if (e.target.dataset.new !== undefined) {
-        mystery = null;
-        store.set('mystery', null);
-        flashMsg('新しいミステリーマシンに乗り換えました');
-      }
-      machineKey = key;
-      store.set('machine', key);
-      buildTitle();
-    });
-    ms.appendChild(el);
-  }
-  const best = store.get('best.' + COURSES[selected].id, null);
-  $('best').textContent = best ? `ベスト ${fmt(best.time)}（${best.pos}位）` : '';
+  const pr = profile();
+  const best = pr.best[COURSES[selected].id];
+  $('best').textContent = pr.races ? `戦績 ${pr.races}戦 ${pr.wins}勝` + (best ? `　ベスト ${fmt(best.time)}（${best.pos}位）` : '') : '';
 }
 for (const b of document.querySelectorAll('#themes button')) {
   b.addEventListener('click', () => { theme = b.dataset.t; store.set('theme', theme); buildTitle(); });
 }
 $('btn-start').addEventListener('click', () => startRace());
-$('driver-name').addEventListener('input', (e) => {
+$('driver-name').addEventListener('change', (e) => {
   driverName = e.target.value.trim().slice(0, 12);
   store.set('name', driverName);
+  buildTitle();
 });
 $('driver-name').addEventListener('keydown', (e) => e.stopPropagation());
 $('btn-resume').addEventListener('click', () => togglePause(false));
@@ -252,12 +237,11 @@ function startRace() {
   const playerTeam = TEAMS[0];
   const rivals = TEAMS.slice(1);
   // 脚質 (ミステリーマシンは隠れている)
-  let styleKey = machineKey, hidden = false;
-  if (machineKey === 'mystery') {
-    if (!mystery) { mystery = { style: MACHINE_KEYS[Math.floor(Math.random() * 4)], revealed: false, races: 0 }; store.set('mystery', mystery); }
-    styleKey = mystery.style;
-    hidden = !mystery.revealed;
-  }
+  const pr = profile();
+  // テスト用: ?debug&style=sashi で脚質を指定できる
+  const force = DEBUG && new URLSearchParams(location.search).get('style');
+  const styleKey = MACHINES[force] ? force : pr.style;
+  const hidden = !pr.revealed && !MACHINES[force];
   // いつも最後尾からスタート
   const playerSlot = N_CARS - 1;
   const racers = [];
@@ -315,7 +299,6 @@ function startRace() {
   setTimeout(() => $('grid-msg').classList.remove('show'), 3500);
   showTelop(def.sections?.[0]?.main || def.title, `${playerSlot + 1}番グリッドからスタート`, def.en);
   $('hud-course').textContent = def.title;
-  $('hud-style').textContent = G.hidden ? '？？？' : G.M.name;
 }
 
 // ---------------- ミニマップ ----------------
@@ -606,12 +589,15 @@ function updateAI(dt) {
       // 自分がトップの時は後続が本気で追い上げてくる (離れるほど速い)
       vt *= 1.03 + Math.min(0.06, -gap / 1800);
     } else if (gap < -150) vt *= 1 + Math.min(0.05, (-gap - 150) / 2500);
+    // 奥の手: オーバーテイクモード中は ERS 全開
+    car.attack = Math.max(0, (car.attack || 0) - dt);
+    if (car.attack > 0) vt *= 1 + ATTACK_BOOST;
     const slip = slipFor(car);
     vt += slip * 8;
     // コーナー手前で減速 (プレイヤーがハンドルを切り込んだ時と同じくらいまで攻める)
     const look = (car.v * car.v) / (2 * 22) + 25;
     const kmax = c.maxCurv(car.s, look);
-    if (kmax > 1e-4) vt = Math.min(vt, Math.sqrt(AI_GRIP / kmax));
+    if (kmax > 1e-4) vt = Math.min(vt, Math.sqrt((AI_GRIP * (car.attack > 0 ? 1.12 : 1)) / kmax));
     // 前の車 (自分も含む) に詰まったら、横にあいている所から抜く。抜けない時だけ速度を合わせる
     let blocker = null;
     for (const o of G.racers) {
@@ -627,14 +613,17 @@ function updateAI(dt) {
       const keep = Math.abs(car.laneT - blocker.x) >= CAR_W + 0.1 && roomAt(car.laneT);
       if (!keep) {
         // 広くあいている側へ。狭くても車1台ぶん (こすれるくらい) あれば飛び込む
+        // 奥の手の時は、車体をこすりながらでも狭い隙間にねじ込む
+        const minGap = car.attack > 0 ? 1.25 : CAR_W + 0.1;
         const sides = [blocker.x + 2.1, blocker.x - 2.1]
-          .map((x) => clamp(x, -EDGE, EDGE))
-          .filter((x) => Math.abs(x - blocker.x) >= CAR_W + 0.1 && roomAt(x))
+          .map((x) => clamp(x, -EDGE - (car.attack > 0 ? 0.3 : 0), EDGE + (car.attack > 0 ? 0.3 : 0)))
+          .filter((x) => Math.abs(x - blocker.x) >= minGap && roomAt(x))
           .sort((p, q) => Math.abs(p - car.x) - Math.abs(q - car.x));
         if (sides.length) car.laneT = sides[0];
       }
-      if (Math.abs(car.laneT - blocker.x) < CAR_W + 0.1) vt = Math.min(vt, blocker.v - 0.5);
-      else if (Math.abs(car.x - blocker.x) < CAR_W && blocker.s - car.s < 7) vt = Math.min(vt, blocker.v + 1);
+      const gapNeed = car.attack > 0 ? 1.25 : CAR_W + 0.1;
+      if (Math.abs(car.laneT - blocker.x) < gapNeed) vt = Math.min(vt, blocker.v - 0.5);
+      else if (Math.abs(car.x - blocker.x) < (car.attack > 0 ? 1.2 : CAR_W) && blocker.s - car.s < 7) vt = Math.min(vt, blocker.v + 1);
       car.laneTimer = Math.max(car.laneTimer, 3);
     }
     car.laneTimer -= dt;
@@ -647,17 +636,51 @@ function updateAI(dt) {
     const sp = car.v / VMAX;
     if (car.finished) vt = car.s > c.length - 120 ? 0 : 30;
     if (!racing && !car.finished) a = 0;
-    else if (car.v < vt) a = Math.min(Math.max(1.5, A0 * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp * 0.9), (vt - car.v) * 3);
+    else if (car.v < vt) a = Math.min(Math.max(car.attack > 0 ? 5 : 1.5, A0 * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp * 0.9), (vt - car.v) * 3);
     else a = -Math.min(26, (car.v - vt) * 2.5 + 2);
     if (Math.abs(car.spin) > 0.25) a = Math.min(a, -9);
     car.v = Math.max(0, car.v + a * dt);
     // 横移動
     const want = clamp((car.laneT - car.x) * 1.5, -4.2, 4.2);
     car.vx = lerp(car.vx, want, Math.min(1, dt * 3));
-    car.x = clamp(car.x + car.vx * dt, -EDGE, EDGE);
+    const edge = car.attack > 0 ? EDGE + 0.3 : EDGE;
+    car.x = clamp(car.x + car.vx * dt, -edge, edge);
+    // 壁ぎりぎりをこすって抜く時は火花
+    if (Math.abs(car.x) > EDGE && Math.abs(car.s - P.s) < 120 && Math.random() < 0.5) {
+      G.effects.sparks(worldPos(car, 0.2, 0, Math.sign(car.x) * 0.8), 3, carVel(car), Math.sign(car.x));
+    }
     spinStep(car, dt);
     car.s = Math.min(car.s + car.v * dt, c.length - 2);
   }
+}
+
+// 奥の手の発動: 自分がトップで、先頭の重圧が始まった時かトップを少し走った時、すぐ後ろの車が仕掛ける
+function updateAttack(dt) {
+  G.attackCd = Math.max(0, (G.attackCd || 0) - dt);
+  const P = G.player;
+  if (G.mode !== 'race' || P.finished || G.rank !== 1 || G.attackCd > 0) return;
+  if (!(G.penalty > 0 || G.leadT > 6)) return;
+  // すぐ後ろ (150m 以内) の車
+  let best = null;
+  for (const r of G.racers) {
+    if (r.player || r.finished) continue;
+    const gap = P.s - r.s;
+    if (gap > 0 && gap < 150 && (!best || gap < P.s - best.s)) best = r;
+  }
+  if (!best) return;
+  best.attack = ATTACK_T;
+  G.attackCd = ATTACK_GAP;
+  showAlert(`⚡ ${best.team.name} がオーバーテイクモード!`, 'warn', 1800);
+  radio(`後ろの${best.team.name}がERSを全開にした! 来るぞ!`);
+  Sound.ers();
+}
+
+function radio(msg) {
+  const el = $('radio');
+  $('radio-msg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(radio.t);
+  radio.t = setTimeout(() => el.classList.remove('show'), 4000);
 }
 
 // 車どうしの接触 (大破はしない。押し合い・失速・スピン)
@@ -702,8 +725,11 @@ function collide() {
         const rv = rear.v - front.v;
         impact = Math.max(0, rv);
         if (rv > 0) {
-          rear.v -= rv * 0.75 + 0.5;
+          // 奥の手の車は追突しても失速せず、横へよけて並びかける
+          const keep = rear.attack > 0 ? 0.25 : 0.75;
+          rear.v -= rv * keep + 0.5;
           front.v += rv * 0.45;
+          if (rear.attack > 0 && !rear.player) rear.laneT = clamp(front.x + (front.x > 0 ? -1.4 : 1.4), -EDGE, EDGE);
         }
         // 角に当たるとスピン
         const off = front.x - rear.x;
@@ -712,10 +738,11 @@ function collide() {
           rear.spinV -= Math.sign(off) * impact * 0.05;
         }
       } else {
-        // 横から当たった
+        // 横から当たった (奥の手の車は押し負けない)
         const sd = Math.sign(dx) || 1;
-        a.x -= sd * pX * 0.5;
-        b.x += sd * pX * 0.5;
+        const ka = a.attack > 0 ? 0.15 : b.attack > 0 ? 0.85 : 0.5;
+        a.x -= sd * pX * ka;
+        b.x += sd * pX * (1 - ka);
         impact = Math.abs(a.vx - b.vx) + 2;
         a.vx = -sd * 3.2;
         b.vx = sd * 3.2;
@@ -807,10 +834,10 @@ function checkFinish() {
 function showResult() {
   G.mode = 'result';
   const P = G.player;
-  const key = 'best.' + G.def.id;
-  const best = store.get(key, null);
+  const pr = profile();
+  const best = pr.best[G.def.id];
   let isBest = false;
-  if (!best || P.time < best.time) { store.set(key, { time: P.time, pos: P.rank }); isBest = true; }
+  if (!best || P.time < best.time) { pr.best[G.def.id] = { time: P.time, pos: P.rank }; isBest = true; }
   $('res-pos').textContent = P.rank;
   $('res-pos').className = P.rank <= 3 ? 'podium p' + P.rank : '';
   $('res-time').textContent = fmt(P.time) + (isBest ? '  ★ベスト更新' : '');
@@ -832,19 +859,17 @@ function showResult() {
   if (G.ers / G.M.ers > 0.3) notes.push('ゴールしてもERSがたっぷり残っていた。仕掛けが遅かったか、使い切れていない。');
   if (G.ersEmptyAt != null && G.ersEmptyAt > 1500) notes.push(`ゴールまで${(G.ersEmptyAt / 1000).toFixed(1)}kmでERSを使い切った。仕掛けが早すぎた。`);
   if ((G.penCount || 0) >= 2) notes.push('先頭に立つのが早すぎて、何度も「先頭の重圧」に捕まった。');
-  if (G.hidden && mystery) {
-    mystery.races++;
-    if (P.rank === 1) {
-      mystery.revealed = true;
+  pr.races++;
+  if (P.rank === 1) {
+    pr.wins++;
+    if (G.hidden) {
+      pr.revealed = true;
       notes.unshift(`優勝！ このマシンの脚質は「${G.M.name}」だった！`);
     }
-    store.set('mystery', mystery);
-  } else if (machineKey === 'mystery' && mystery) {
-    mystery.races++;
-    store.set('mystery', mystery);
   }
+  saveProfile(pr);
   if (!notes.length) notes.push('悪くない走りだった。次は仕掛けどころを変えてみよう。');
-  $('res-notes').innerHTML = `<div class="n-head">📻 チーフエンジニア${G.hidden ? '（脚質: ？？？）' : `（脚質: ${G.M.name}）`}</div>` + notes.map((n) => `<p>${n}</p>`).join('');
+  $('res-notes').innerHTML = `<div class="n-head">📻 チーフエンジニア${G.hidden ? '' : `（このマシンは「${G.M.name}」）`}</div>` + notes.map((n) => `<p>${n}</p>`).join('');
   $('res-table').innerHTML = rows.map(({ r, t }, i) => `
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
     <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? esc(nameOf(r)) + ' (' + r.team.name + ')' : r.team.name}</td>
@@ -919,6 +944,8 @@ function placeCars(dt) {
     // 雨用ライト (ブレーキ中・トンネル内で点灯)
     const lit = G.T.night || c.inTunnel(r.s) || (Math.floor(G.t * 8) % 2 === 0 && r.v < 30);
     m.rainLight.material.color.setHex(lit ? 0xff2020 : 0x400000);
+    m.ersGlow.visible = r.attack > 0;
+    if (r.attack > 0) m.ersGlow.children.forEach((sp, i) => sp.material.opacity = 0.6 + 0.4 * Math.sin(G.t * 30 + i));
   }
 }
 
@@ -940,6 +967,10 @@ function updateHUD(dt) {
   $('hud-gear').textContent = kmh < 2 && G.mode !== 'race' ? 'N' : gear;
   $('rpm-bar').style.width = (clamp((G.rpm - 4000) / 8500, 0, 1) * 100).toFixed(1) + '%';
   $('hud-pos').textContent = G.rank;
+  // 奥の手の車が迫っている時は、縮小図の上に矢印
+  const atk = G.racers.find((r) => r.attack > 0);
+  $('atk').classList.toggle('on', !!atk && G.mode === 'race');
+  if (atk) $('atk').textContent = `⚡ ${atk.team.name} 接近中  ${Math.max(0, P.s - atk.s).toFixed(0)}m`;
   // トップの時は後続との差を出し、迫ってきたら知らせる
   const behind = G.order && G.rank === 1 && !P.finished ? G.order[1] : null;
   $('row-behind').hidden = !behind;
@@ -1062,6 +1093,7 @@ function frame(now, noRender) {
     collide();
   }
   updateRanks();
+  updateAttack(dt);
   if (G.mode === 'race') checkFinish();
   const P = G.player;
   // トンネルの暗さ

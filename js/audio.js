@@ -163,6 +163,17 @@ export const Sound = {
     n.connect(f).connect(g).connect(master);
     n.start(t); n.stop(t + 0.1);
   },
+  // 後ろの車がオーバーテイクモードに入った音 (うなりが近づいてくる)
+  ers() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(1400, t + 1.2);
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 2;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.9); g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    o.connect(f).connect(g).connect(master);
+    o.start(t); o.stop(t + 1.6);
+  },
   beep(high) {
     if (!ctx) return;
     const t = ctx.currentTime;

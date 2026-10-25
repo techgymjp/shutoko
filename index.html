@@ -22,7 +22,6 @@
   <div id="hud" hidden>
     <div id="posbox" class="panel">
       <div class="pos"><small>POS</small><b id="hud-pos">1</b><span>/12</span></div>
-      <div class="row"><span class="lbl">脚質</span><b id="hud-style" class="st">-</b></div>
       <div class="row"><span class="lbl">TIME</span><b id="hud-time">0:00.00</b></div>
       <div class="row" id="row-behind" hidden><span class="lbl">後続</span><b id="hud-behind">+0.0</b><small>秒</small></div>
     </div>
@@ -42,6 +41,7 @@
     </div>
     <div id="boost"><b>追い上げブースト</b> <span id="boost-v">+0</span><small>km/h</small></div>
     <div id="slip">SLIPSTREAM</div>
+    <div id="atk"></div>
     <div id="ersbox"><span class="lbl">ERS <small>Shift</small></span><div class="track"><i id="ers-cap"></i><b id="ers-bar"></b></div></div>
     <div id="radio"><div class="r-head">📻 TEAM RADIO</div><div id="radio-msg"></div></div>
     <div id="pen">先頭の重圧 <b>ペースダウン</b> あと<span id="pen-t">0</span>秒</div>
@@ -83,9 +83,8 @@
       <div class="t-row name-row">
         <div class="t-label">ドライバー名</div>
         <input id="driver-name" maxlength="12" placeholder="YOU" autocomplete="off" enterkeyhint="done">
+        <small class="name-note">名前ごとに戦績を保存</small>
       </div>
-      <div class="t-label" id="machine-label">あなたのマシン</div>
-      <div id="machines"></div>
       <div class="t-row">
         <div class="t-label">時間帯</div>
         <div id="themes">
@@ -98,7 +97,8 @@
       <div id="best"></div>
       <div class="help">
         <p><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
-        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。2〜3番手の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。マシンには隠れた<b>脚質</b>（逃げ・先行・差し・追込）があり、心地よい位置で走るとERSがよく溜まります。チーム無線とレース後のコメントから脚質を見抜き、仕掛けどころを探しましょう。</p>
+        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。前の車の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。</p>
+        <p>……ただし、マシンにもそれぞれ<b>クセ</b>があるようです。前で引っぱるのが好きなマシン、後ろでじっと力を溜めるマシン——。チーム無線に耳を傾け、レース後のエンジニアの言葉をヒントに、<b>あなたのマシンに合った走り方</b>を見つけてください。</p>
         <p>三宅坂JCT・谷町JCTの急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
       </div>
       <div class="t-credit">道路: © OpenStreetMap contributors（ODbL）　建物: 国土交通省 Project PLATEAU 3D都市モデル（東京都23区）を加工して作成</div>

@@ -381,6 +381,25 @@ export function makeF1(team, opt = {}) {
   rain.position.set(0, 0.55, 2.52);
   car.add(rain);
   car.rainLight = rain;
+  // オーバーテイクモードの時に光る青い ERS の光 (ふだんは隠す)
+  const ersTex = canvasTex('ersglow', 64, 64, (g, w, h) => {
+    const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    gr.addColorStop(0, 'rgba(200,240,255,1)');
+    gr.addColorStop(0.3, 'rgba(60,170,255,0.7)');
+    gr.addColorStop(1, 'rgba(20,80,255,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, w, h);
+  });
+  const ers = new THREE.Group();
+  for (const [x, y, z, sc] of [[0, 0.6, 2.8, 2.6], [-0.5, 0.9, 2.6, 1.4], [0.5, 0.9, 2.6, 1.4], [0, 0.5, 3.8, 1.8]]) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: ersTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    sp.position.set(x, y, z);
+    sp.scale.setScalar(sc);
+    ers.add(sp);
+  }
+  ers.visible = false;
+  car.add(ers);
+  car.ersGlow = ers;
   // 夜はテールランプが赤く光る (左右のランプ + にじみ)
   if (opt.night) {
     const glowTex = canvasTex('tailglow', 64, 64, (g, w, h) => {

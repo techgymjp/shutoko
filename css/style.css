@@ -80,20 +80,12 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 #res-notes { text-align: left; background: rgba(61,255,138,0.08); border-left: 3px solid #3dff8a; border-radius: 6px; padding: 6px 12px; margin: 8px 0; font-size: 13px; }
 #res-notes .n-head { font-weight: 900; color: #3dff8a; font-size: 12px; }
 #res-notes p { margin: 4px 0; }
-.machine.mystery { grid-column: 1 / -1; background: repeating-linear-gradient(135deg, rgba(14,20,30,0.9) 0 12px, rgba(40,30,60,0.9) 12px 24px); }
-.machine .m-name small { font-size: 12px; color: #ffd23a; margin-left: 6px; }
-.machine .m-new { display: inline-block; margin-top: 4px; font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #3a2a55; color: #fff; }
 #driver-name { flex: 1; max-width: 260px; background: rgba(14,20,30,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; padding: 7px 12px; font-size: 16px; font-family: var(--font); font-weight: 700; user-select: text; -webkit-user-select: text; }
+.name-note { font-size: 11px; color: var(--sub); }
 #driver-name:focus { outline: 2px solid #ff2a6a; }
-#machines { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-.machine { text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(14,20,30,0.85); color: #fff; }
-.machine.sel { border-color: #ff2a6a; box-shadow: 0 0 0 1px #ff2a6a inset, 0 0 18px rgba(255,42,106,0.3); background: rgba(90,10,40,0.45); }
-.machine .m-name { font-weight: 900; font-size: 17px; }
-.machine .m-desc { font-size: 11px; color: #c4d0dc; margin: 4px 0 6px; line-height: 1.5; }
-.machine .m-stat { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--sub); }
-.machine .m-stat span { width: 52px; }
-.machine .m-stat i { display: inline-block; width: 12px; height: 6px; margin-right: 2px; background: #2a3442; border-radius: 2px; }
-.machine .m-stat i.f { background: #3dff8a; }
+#atk { position: absolute; right: 12px; top: 318px; width: 200px; text-align: center; background: linear-gradient(90deg, #1446c8, #2a9dff); color: #fff; font-weight: 900; font-size: 13px; padding: 4px 6px; border-radius: 8px; opacity: 0; transition: opacity 0.2s; box-shadow: 0 0 14px #2a9dff; }
+#atk.on { opacity: 1; animation: blink 0.5s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.55; } }
 #slip { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); font-family: var(--num); font-weight: 800; letter-spacing: 0.3em; color: #7fe0ff; text-shadow: 0 0 10px #0af; font-size: 16px; opacity: 0; transition: opacity 0.2s; }
 #slip.on { opacity: 1; }
 
@@ -114,6 +106,7 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 
 #alert { position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%) scale(1); font-size: clamp(28px, 5vw, 52px); font-weight: 900; color: #fff; text-shadow: 0 0 16px #f20, 0 3px 0 #000; opacity: 0; white-space: nowrap; }
 #alert.show { opacity: 1; animation: pop 0.35s ease-out; }
+#alert.warn { font-size: clamp(22px, 3.6vw, 38px); color: #d6f0ff; text-shadow: 0 0 16px #2a9dff, 0 3px 0 #000; }
 #alert.big { font-size: clamp(40px, 8vw, 84px); color: #ffe23a; }
 #alert.good { text-shadow: 0 0 16px #0c6, 0 3px 0 #000; color: #eaffef; font-family: var(--num); letter-spacing: 0.08em; }
 #alert.go { font-size: clamp(56px, 12vw, 120px); }
@@ -202,6 +195,7 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 @media (max-width: 760px), (max-height: 520px) {
   #tower { display: none; }
   #minimap { width: 140px; height: 140px; top: 96px; }
+  #atk { top: 242px; width: 140px; font-size: 11px; }
   #infobox { min-width: 0; padding: 6px 10px; }
   #infobox .course { display: none; }
   #posbox { min-width: 0; }
@@ -219,10 +213,6 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 #res-notes { text-align: left; background: rgba(61,255,138,0.08); border-left: 3px solid #3dff8a; border-radius: 6px; padding: 6px 12px; margin: 8px 0; font-size: 13px; }
 #res-notes .n-head { font-weight: 900; color: #3dff8a; font-size: 12px; }
 #res-notes p { margin: 4px 0; }
-.machine.mystery { grid-column: 1 / -1; background: repeating-linear-gradient(135deg, rgba(14,20,30,0.9) 0 12px, rgba(40,30,60,0.9) 12px 24px); }
-.machine .m-name small { font-size: 12px; color: #ffd23a; margin-left: 6px; }
-.machine .m-new { display: inline-block; margin-top: 4px; font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #3a2a55; color: #fff; }
-#machines { grid-template-columns: 1fr; }
 }
 @media (pointer: coarse) {
   #speedbox { right: auto; left: 50%; transform: translateX(-50%); }
