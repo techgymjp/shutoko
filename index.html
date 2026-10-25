@@ -22,6 +22,7 @@
   <div id="hud" hidden>
     <div id="posbox" class="panel">
       <div class="pos"><small>POS</small><b id="hud-pos">1</b><span>/12</span></div>
+      <div class="row"><span class="lbl">脚質</span><b id="hud-style" class="st">-</b></div>
       <div class="row"><span class="lbl">TIME</span><b id="hud-time">0:00.00</b></div>
       <div class="row" id="row-behind" hidden><span class="lbl">後続</span><b id="hud-behind">+0.0</b><small>秒</small></div>
     </div>
@@ -41,6 +42,9 @@
     </div>
     <div id="boost"><b>追い上げブースト</b> <span id="boost-v">+0</span><small>km/h</small></div>
     <div id="slip">SLIPSTREAM</div>
+    <div id="ersbox"><span class="lbl">ERS <small>Shift</small></span><div class="track"><i id="ers-cap"></i><b id="ers-bar"></b></div></div>
+    <div id="radio"><div class="r-head">📻 TEAM RADIO</div><div id="radio-msg"></div></div>
+    <div id="pen">先頭の重圧 <b>ペースダウン</b> あと<span id="pen-t">0</span>秒</div>
 
     <div id="lights" hidden><i></i><i></i><i></i><i></i><i></i></div>
     <div id="grid-msg"></div>
@@ -60,6 +64,7 @@
       <button data-k="right" aria-label="右">▶</button>
     </div>
     <div class="tr">
+      <button data-k="ers" class="ers" aria-label="ERS">ERS</button>
       <button data-k="brake" class="brk" aria-label="ブレーキ">BRAKE</button>
       <button data-k="accel" class="acc" aria-label="アクセル">ACCEL</button>
     </div>
@@ -75,6 +80,8 @@
       </div>
       <div class="t-label">ルートを選ぶ</div>
       <div id="courses"></div>
+      <div class="t-label">マシンの脚質を選ぶ</div>
+      <div id="machines"></div>
       <div class="t-row">
         <div class="t-label">時間帯</div>
         <div id="themes">
@@ -86,8 +93,9 @@
       <button id="btn-start">スタート</button>
       <div id="best"></div>
       <div class="help">
-        <p><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
-        <p>12台のF1マシンで首都高を全開バトル。スタート位置は毎回ランダム。順位が下のときほど「追い上げブースト」で最高速が上がり、前の車の真後ろではスリップストリームが効きます。三宅坂JCT・谷町JCTの急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
+        <p><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
+        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。2〜3番手の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。脚質ごとに仕掛けどころが違います。</p>
+        <p>三宅坂JCT・谷町JCTの急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
       </div>
     </div>
   </div>
@@ -108,6 +116,7 @@
       <div class="r-pos"><b id="res-pos">1</b><span>位</span></div>
       <div id="res-time"></div>
       <div id="res-stats"></div>
+      <div id="res-notes"></div>
       <table id="res-table"></table>
       <div class="r-btns">
         <button id="btn-again">もう一度</button>

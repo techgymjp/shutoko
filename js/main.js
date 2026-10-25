@@ -18,7 +18,26 @@ const GRIP = 27;             // 横方向のグリップ限界 (m/s²)
 const CAR_L = 5.3, CAR_W = 1.95;
 const EDGE = HALF - 1.0;     // 車の中心が動ける範囲
 const N_CARS = 12;
-const BOOST_MAX = 0.14;      // 最下位のときのスピードボーナス
+const BOOST_MAX = 0.08;      // 最下位のときのスピードボーナス
+// 先頭の重圧: トップに立って LEAD_GRACE 秒たつと LEAD_PEN_T 秒のあいだ最高速が脚質ごとの割合だけ下がる
+// (先頭は風よけがない)。ゴール前 FINAL_FREE m からは起きない
+const LEAD_GRACE = 2.5, LEAD_PEN_T = 12, LEAD_CD = 6, FINAL_FREE = 500;
+const ERS_SEC = 8;           // ERS 1 本ぶんで全開にできる秒数
+// マシンの脚質 (ダービージョッキーの逃げ・先行・差し・追込)
+// band: 走っていて心地よい順位の範囲 (0 = 先頭, 1 = 最後尾)。この範囲だと ERS がよく溜まり、
+// 前に出すぎるとマシンが熱を持って回生できない。leadPen: 先頭の重圧で下がる最高速の割合
+const MACHINES = {
+  nige: { name: '逃げ', vmax: 350, accel: 1.08, grip: 29, ers: 0.5, ersPow: 0.07, band: [0, 0.1], leadPen: 0.05,
+    desc: '先頭で風を受けても落ちにくい。ERSは短い。スタートから前へ出て押し切る。', stats: [5, 5, 5, 1] },
+  senko: { name: '先行', vmax: 344, accel: 1.04, grip: 28, ers: 0.8, ersPow: 0.09, band: [0.08, 0.36], leadPen: 0.1,
+    desc: '2〜4番手が心地よい。前の集団で風よけを使い、残り1kmで抜け出す。', stats: [5, 4, 4, 2] },
+  sashi: { name: '差し', vmax: 338, accel: 1.0, grip: 27, ers: 1.1, ersPow: 0.11, band: [0.4, 0.72], leadPen: 0.12,
+    desc: '中団（5〜8番手）でERSを溜め、ゴール前で一気に差す。', stats: [4, 4, 4, 4] },
+  oikomi: { name: '追込', vmax: 332, accel: 0.97, grip: 26, ers: 1.6, ersPow: 0.13, band: [0.74, 1], leadPen: 0.14,
+    desc: '後方で我慢するほどERSが満ちる。最後の直線で大外からまくる。', stats: [3, 3, 3, 5] },
+};
+const MACHINE_KEYS = Object.keys(MACHINES);
+
 const GEARS = [0, 95, 135, 170, 205, 240, 275, 310, 400];
 const EYE_H = 0.95;
 
@@ -44,6 +63,9 @@ const camera = new THREE.PerspectiveCamera(72, 1, 0.12, 20000);
 let G = null; // 1回のレースの状態
 let theme = store.get('theme', 'day');
 let selected = 0;
+let machineKey = store.get('machine', 'sashi');
+// ミステリーマシン: 脚質は隠れていて、走りと無線で見抜く。1位になると判明する
+let mystery = store.get('mystery', null); // { style, revealed, races }
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -55,11 +77,12 @@ function resize() {
 window.addEventListener('resize', resize);
 
 // ---------------- 入力 ----------------
-const input = { left: false, right: false, accel: false, brake: false };
+const input = { left: false, right: false, accel: false, brake: false, ers: false };
 const KEYMAP = {
   ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
   ArrowUp: 'accel', KeyW: 'accel', Space: 'accel', KeyZ: 'accel',
   ArrowDown: 'brake', KeyS: 'brake', KeyX: 'brake',
+  ShiftLeft: 'ers', ShiftRight: 'ers', KeyE: 'ers', KeyC: 'ers',
 };
 window.addEventListener('keydown', (e) => {
   if (KEYMAP[e.code]) { input[KEYMAP[e.code]] = true; e.preventDefault(); }
@@ -105,6 +128,36 @@ function buildTitle() {
   });
   for (const b of document.querySelectorAll('#themes button')) {
     b.classList.toggle('sel', b.dataset.t === theme);
+  }
+  // 脚質
+  const ms = $('machines');
+  ms.innerHTML = '';
+  const labels = ['最高速', '加速', 'コーナー', 'ERS 末脚'];
+  const cards = [...MACHINE_KEYS, 'mystery'];
+  for (const key of cards) {
+    const el = document.createElement('button');
+    el.className = 'machine' + (key === machineKey ? ' sel' : '') + (key === 'mystery' ? ' mystery' : '');
+    if (key === 'mystery') {
+      const known = mystery && mystery.revealed ? MACHINES[mystery.style].name : null;
+      el.innerHTML = `<div class="m-name">ミステリー <small>${known ? '脚質: ' + known : '脚質: ？？？'}</small></div>
+        <div class="m-desc">ダービージョッキー方式。脚質は隠れていて、無線とレース後のコメントで見抜く。1位になると判明する。${mystery ? `（${mystery.races}戦）` : ''}</div>
+        ${mystery ? '<span class="m-new" data-new>新しいマシンに乗り換える</span>' : ''}`;
+    } else {
+      const m = MACHINES[key];
+      el.innerHTML = `<div class="m-name">${m.name}</div><div class="m-desc">${m.desc}</div>` +
+        m.stats.map((v, i) => `<div class="m-stat"><span>${labels[i]}</span>${'<i class="f"></i>'.repeat(v)}${'<i></i>'.repeat(5 - v)}</div>`).join('');
+    }
+    el.addEventListener('click', (e) => {
+      if (e.target.dataset.new !== undefined) {
+        mystery = null;
+        store.set('mystery', null);
+        flashMsg('新しいミステリーマシンに乗り換えました');
+      }
+      machineKey = key;
+      store.set('machine', key);
+      buildTitle();
+    });
+    ms.appendChild(el);
   }
   const best = store.get('best.' + COURSES[selected].id, null);
   $('best').textContent = best ? `ベスト ${fmt(best.time)}（${best.pos}位）` : '';
@@ -185,7 +238,15 @@ function startRace() {
   // チーム (自分は SAKURA) と スタート位置 (ランダム)
   const playerTeam = TEAMS[0];
   const rivals = TEAMS.slice(1);
-  const playerSlot = Math.floor(Math.random() * N_CARS);
+  // 脚質 (ミステリーマシンは隠れている)
+  let styleKey = machineKey, hidden = false;
+  if (machineKey === 'mystery') {
+    if (!mystery) { mystery = { style: MACHINE_KEYS[Math.floor(Math.random() * 4)], revealed: false, races: 0 }; store.set('mystery', mystery); }
+    styleKey = mystery.style;
+    hidden = !mystery.revealed;
+  }
+  // いつも最後尾からスタート
+  const playerSlot = N_CARS - 1;
   const racers = [];
   let ri = 0;
   for (let slot = 0; slot < N_CARS; slot++) {
@@ -227,7 +288,10 @@ function startRace() {
     rank: playerSlot + 1, prevRank: playerSlot + 1, boost: 0, slip: 0,
     sectionIdx: -1, scrapeT: 0, hits: 0, overtakes: 0, best: 0, tunnel: 0,
     towerT: 0, finishT: 0, spots: new Set(), hitLog: [],
+    M: MACHINES[styleKey], styleKey, hidden, ers: 0, ersOn: false, leadT: 0, penalty: 0, penCd: 0, calls: new Set(),
+    fit: 'behind', fitT: { ahead: 0, fit: 0, behind: 0 }, radioT: 12, lastRadio: '', ersEmptyAt: null,
   };
+  G.ers = G.M.ers;
   world.prebuild(player.s);
   resize();
   // ミニマップ
@@ -240,6 +304,7 @@ function startRace() {
   setTimeout(() => $('grid-msg').classList.remove('show'), 3500);
   showTelop(def.sections?.[0]?.main || def.title, `${playerSlot + 1}番グリッドからスタート`, def.en);
   $('hud-course').textContent = def.title;
+  $('hud-style').textContent = G.hidden ? '？？？' : G.M.name;
 }
 
 // ---------------- ミニマップ ----------------
@@ -387,17 +452,46 @@ function updatePlayer(dt) {
   const c = G.course;
   const p = c.at(P.s);
   const racing = G.mode === 'race' && !P.finished;
+  const M = G.M;
   const bonus = racing ? rankBonus(G.rank) : 1;
   G.boost = bonus - 1;
   G.slip = racing ? slipFor(P) : 0;
-  const vtop = VMAX * bonus + G.slip * 9;
+  // 先頭の重圧 (トップに立ってしばらくすると、一定時間ペースが落ちる)
+  const remain = G.goalS - P.s;
+  G.leadT = racing && G.rank === 1 ? G.leadT + dt : 0;
+  G.penCd = Math.max(0, G.penCd - dt);
+  if (G.penalty > 0) {
+    G.penalty -= dt;
+    if (G.penalty <= 0) { G.penalty = 0; G.penCd = LEAD_CD; }
+  } else if (G.leadT > LEAD_GRACE && G.penCd <= 0 && remain > FINAL_FREE) {
+    G.penalty = LEAD_PEN_T;
+    G.penCount = (G.penCount || 0) + 1;
+    showAlert('先頭の重圧! ペースダウン', 'warn', 1600);
+  }
+  const penK = G.penalty > 0 ? 1 - M.leadPen : 1;
+  // ERS: 押している間だけ最高速と加速が上がる。風よけ (スリップストリーム) とブレーキで溜まる
+  G.ersOn = racing && input.ers && input.accel && G.ers > 0;
+  if (G.ersOn) G.ers = Math.max(0, G.ers - dt / ERS_SEC);
+  else if (racing) {
+    // 心地よい位置ならよく溜まる。前に出すぎると熱で回生できない
+    const pos = (G.rank - 1) / (N_CARS - 1);
+    const fit = pos < M.band[0] ? 'ahead' : pos > M.band[1] ? 'behind' : 'fit';
+    G.fitT[fit] += dt;
+    G.fit = fit;
+    const rate = fit === 'fit' ? 1 / 40 : fit === 'behind' ? 1 / 90 : -1 / 120;
+    G.ers = clamp(G.ers + dt * (rate + G.slip * 0.05 + (input.brake ? 0.05 : 0)), 0, M.ers);
+  }
+  const ersK = G.ersOn ? 1 + M.ersPow : 1;
+  const vtop = (M.vmax / KMH) * bonus * penK * ersK + G.slip * 9;
   const sp = P.v / vtop;
   let a;
   if (P.finished) a = P.v > 25 ? -6 : (P.v > 0 ? -3 : 0);
   else if (!racing) a = 0;
   else if (input.brake) a = -BRAKE - 4 * sp * sp;
-  else if (input.accel) a = A0 * bonus * (1 + G.slip * 0.3) * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp;
+  else if (input.accel) a = A0 * M.accel * bonus * (G.ersOn ? 1.35 : 1) * (1 + G.slip * 0.3) * (1 - 0.5 * sp) - A0 * 0.5 * sp * sp;
   else a = -(A0 * 0.45 * sp * sp + 2.0);
+  // 最高速を超えている時 (重圧が始まった直後など) は早めに落ちる
+  if (racing && P.v > vtop) a = Math.min(a, -3 - (P.v - vtop) * 0.4);
   a -= 9.8 * p.grade * 0.6;
   // スピン中は失速
   if (Math.abs(P.spin) > 0.25) a -= 9;
@@ -412,7 +506,7 @@ function updatePlayer(dt) {
   G.steer = lerp(G.steer, target, Math.min(1, dt * (target === 0 ? 7 : 5)));
   // 横方向: ハンドルの力 − 遠心力 (グリップを超えた分は外へ滑る)
   const need = P.v * P.v * p.k;
-  const over = Math.max(0, Math.abs(need) - GRIP) * Math.sign(need);
+  const over = Math.max(0, Math.abs(need) - M.grip) * Math.sign(need);
   const steerA = 15 * Math.min(1, P.v / 14) * (1 - 0.35 * sp);
   const ax = G.steer * steerA - need * 0.12 - over;
   P.vx += ax * dt;
@@ -650,6 +744,29 @@ function showResult() {
   // 最終順位 (まだ走っている車は予想タイム)
   const rows = [...G.racers].map((r) => ({ r, t: r.finished ? r.time : G.raceT + (G.goalS - r.s) / Math.max(30, r.v) }))
     .sort((a, b) => a.t - b.t);
+  // チーフエンジニアのコメント (ダービージョッキーの騎手コメントにあたる)
+  const tot = G.fitT.ahead + G.fitT.fit + G.fitT.behind || 1;
+  const notes = [];
+  if (G.fitT.ahead / tot > 0.35) notes.push('道中ずっと前に出すぎて、マシンが熱を持っていた。もっと後ろで脚を溜めたほうがいいかもしれない。');
+  else if (G.fitT.ahead / tot > 0.15) notes.push('前半、少し前に出すぎてバッテリーが苦しそうだった。');
+  if (G.fitT.fit / tot > 0.5) notes.push('マシンが気持ちよく走れる位置だった。この位置取りは合っている。');
+  if (G.fitT.behind / tot > 0.5) notes.push('後ろにいる時間が長かった。マシンはもう少し前を走りたがっていたかもしれない。');
+  if (G.ers / G.M.ers > 0.3) notes.push('ゴールしてもERSがたっぷり残っていた。仕掛けが遅かったか、使い切れていない。');
+  if (G.ersEmptyAt != null && G.ersEmptyAt > 1500) notes.push(`ゴールまで${(G.ersEmptyAt / 1000).toFixed(1)}kmでERSを使い切った。仕掛けが早すぎた。`);
+  if ((G.penCount || 0) >= 2) notes.push('先頭に立つのが早すぎて、何度も「先頭の重圧」に捕まった。');
+  if (G.hidden && mystery) {
+    mystery.races++;
+    if (P.rank === 1) {
+      mystery.revealed = true;
+      notes.unshift(`優勝！ このマシンの脚質は「${G.M.name}」だった！`);
+    }
+    store.set('mystery', mystery);
+  } else if (machineKey === 'mystery' && mystery) {
+    mystery.races++;
+    store.set('mystery', mystery);
+  }
+  if (!notes.length) notes.push('悪くない走りだった。次は仕掛けどころを変えてみよう。');
+  $('res-notes').innerHTML = `<div class="n-head">📻 チーフエンジニア${G.hidden ? '（脚質: ？？？）' : `（脚質: ${G.M.name}）`}</div>` + notes.map((n) => `<p>${n}</p>`).join('');
   $('res-table').innerHTML = rows.map(({ r, t }, i) => `
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
     <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? 'YOU (' + r.team.name + ')' : r.team.name}</td>
@@ -700,7 +817,7 @@ function updateCamera(dt) {
   }
   // 速度で視野が広がる (酷道168 と同じ考え方)
   const fovBase = camera.aspect < 1 ? 88 : 68;
-  const fov = fovBase + sp * sp * 22 + G.boost * 20 + G.slip * 4;
+  const fov = fovBase + sp * sp * 22 + G.boost * 20 + G.slip * 4 + (G.ersOn ? 7 : 0) - (G.penalty > 0 ? 3 : 0);
   camera.fov = lerp(camera.fov, fov, Math.min(1, dt * 3));
   camera.updateProjectionMatrix();
   return { sx, sy, sp };
@@ -767,6 +884,44 @@ function updateHUD(dt) {
     $('hud-nextd').textContent = ((nxt.s - P.s) / 1000).toFixed(1) + 'km';
   }
   $('boost').classList.toggle('on', G.boost > 0.005 && G.mode === 'race');
+  // チーム無線 (脚質を見抜く手がかり)
+  if (G.mode === 'race' && !P.finished) {
+    G.radioT -= dt;
+    if (G.ers <= 0.001 && G.ersEmptyAt == null) G.ersEmptyAt = G.goalS - P.s;
+    if (G.radioT <= 0) {
+      let msg;
+      if (G.ers >= G.M.ers - 0.001 && G.fit !== 'ahead') msg = 'ERS満タンだ。いつでも行けるぞ';
+      else if (G.fit === 'ahead') msg = '前に出すぎだ! マシンが熱を持って回生できていない';
+      else if (G.fit === 'fit') msg = 'いいペースだ。バッテリーがよく溜まっている';
+      else msg = 'このあたりはマシンが少し退屈そうだ。もう少し前でもいい';
+      if (msg !== G.lastRadio || G.radioT < -20) {
+        const el = $('radio');
+        $('radio-msg').textContent = msg;
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 4500);
+        G.lastRadio = msg;
+        G.radioT = 14;
+      }
+    }
+  }
+  // ERS ゲージと先頭の重圧
+  $('ers-bar').style.width = ((G.ers / G.M.ers) * 100).toFixed(1) + '%';
+  $('ers-cap').style.width = (G.M.ers / 1.6 * 100).toFixed(0) + '%';
+  $('ersbox').classList.toggle('on', G.ersOn);
+  $('ersbox').classList.toggle('empty', G.ers <= 0.001);
+  $('pen').classList.toggle('on', G.penalty > 0);
+  if (G.penalty > 0) $('pen-t').textContent = Math.ceil(G.penalty);
+  // 仕掛けどころの声かけ
+  const left = G.goalS - P.s;
+  for (const [d, msg] of [[3000, '残り3km 位置取りを決めろ!'], [1500, '残り1.5km そろそろ仕掛けどころ!'], [600, 'ゴール前 全開! ERSを使い切れ!']]) {
+    if (G.mode === 'race' && left < d && !G.calls.has(d)) {
+      G.calls.add(d);
+      const el = $('announce');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+  }
   $('boost-v').textContent = '+' + Math.round(G.boost * VMAX * KMH);
   $('slip').classList.toggle('on', G.slip > 0.15);
   hudT -= dt;
@@ -798,7 +953,7 @@ function updateHUD(dt) {
   }
   // 画面効果
   const sp = P.v / VMAX;
-  $('speedlines').style.opacity = clamp((sp - 0.45) * 1.6 + G.boost * 2, 0, 0.9).toFixed(2);
+  $('speedlines').style.opacity = clamp((sp - 0.45) * 1.6 + G.boost * 2 + (G.ersOn ? 0.35 : 0), 0, 0.95).toFixed(2);
   $('speedlines').style.transform = `rotate(${(Math.random() * 3).toFixed(1)}deg) scale(${(1 + Math.random() * 0.04).toFixed(3)})`;
   G.flash *= Math.exp(-dt * 7);
   G.red *= Math.exp(-dt * 3);
