@@ -2,6 +2,19 @@
 // 道路の線と高さ・トンネル区間・ビル群は js/course-data.js (OpenStreetMap と PLATEAU から生成)。
 // 区間・出口は、OSM の出口・JCT の名前 (junction) か、緯度経度 (at) か、ゴールからの距離 (fromEnd) で指定する。
 import { COURSE_DATA } from './course-data.js';
+import { C1_DATA } from './course-c1-data.js';
+
+// どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
+// spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
+const CITY_LANDMARKS = [
+  // テックジム: 千代田区平河町2-7-2 VORT永田町 6F (位置は国土地理院の住所検索の「平河町二丁目7番」)。
+  // ビル・屋上の鉄塔の看板・アドバルーン。face: 看板を向ける方向
+  { model: 'techgym', lat: 35.68022, lon: 139.74014, face: [35.68010, 139.73300], name: 'テックジム', spot: 'テックジム東京本校（永田町4番出口）' },
+  { model: 'diet', lat: 35.67590, lon: 139.74480, name: '国会議事堂' },
+  { model: 'tokyotower', lat: 35.65860, lon: 139.74540, name: '東京タワー', spot: '東京タワー' },
+  { model: 'skytree', lat: 35.71010, lon: 139.81070, name: '東京スカイツリー', far: true },
+  { model: 'fuji', lat: 35.36060, lon: 138.72740, name: '富士山', far: true },
+];
 
 export const COURSES = [
   {
@@ -12,6 +25,7 @@ export const COURSES = [
     en: 'TAKAIDO → KASUMIGASEKI → YOGA',
     km: null, // 実測して埋める
     data: COURSE_DATA,
+    barrierMarks: ['初台', '池尻'], // この2つの間以外 (住宅地) に遮音壁
     // 区間の切り替え (テロップ)
     sections: [
       { at: [35.67730, 139.61460], main: '首都高速4号新宿線', sub: '上り 都心方面', en: 'ROUTE 4  SHINJUKU LINE' },
@@ -39,7 +53,7 @@ export const COURSES = [
       { junction: '渋谷出口', name: '渋谷', kind: 'ic' },
       { junction: '池尻', name: '池尻', kind: 'ic' },
       { junction: '三軒茶屋出入口', name: '三軒茶屋', kind: 'ic' },
-      { fromEnd: 380, name: '用賀', kind: 'goal' },
+      { fromEnd: 380, name: '用賀', kind: 'goal', sign: '用賀 東名高速' },
     ],
     // 道路わきの広告看板 (テックジム: 弁慶濠の高架、三宅坂JCT の手前のトンネルの前)
     ads: [
@@ -72,34 +86,70 @@ export const COURSES = [
     // (この場所の PLATEAU の建物は tools/build_course.py の REPLACE で除いてある)。
     // spot: 近づくと出るお知らせ / crown: その場所でいちばん高いビルの屋上に飾りを付ける
     landmarks: [
-      // テックジム: 千代田区平河町2-7-2 VORT永田町 6F (位置は国土地理院の住所検索の「平河町二丁目7番」)。弁慶濠の高架の方を向ける
-      { model: 'techgym', lat: 35.68022, lon: 139.74014, face: [35.68010, 139.73300], name: 'テックジム', spot: '左手に テックジム（平河町2-7-2 VORT永田町 6F）' },
       { model: 'chimney', lat: 35.68240, lon: 139.61420, name: '杉並清掃工場' },
       { model: 'stadium', lat: 35.67790, lon: 139.71460, name: '国立競技場' },
       { model: 'jingustadium', lat: 35.67450, lon: 139.71700, name: '明治神宮野球場' },
       { model: 'kaigakan', lat: 35.67870, lon: 139.71870, name: '聖徳記念絵画館' },
-      { model: 'meijikinenkan', lat: 35.67740, lon: 139.72000, name: '明治記念館', spot: '右手に 明治記念館' },
-      { model: 'geihinkan', lat: 35.68037, lon: 139.72879, name: '迎賓館赤坂離宮', spot: '右手に 迎賓館赤坂離宮' },
-      { crown: 0x2a6fd6, lat: 35.68013, lon: 139.73469, r: 60, name: 'ホテルニューオータニ', spot: '左手に ホテルニューオータニ' },
-      { model: 'diet', lat: 35.67590, lon: 139.74480, name: '国会議事堂' },
-      { model: 'tokyotower', lat: 35.65860, lon: 139.74540, name: '東京タワー' },
-      { spot: '右手に 東京ミッドタウン・左手奥に 六本木ヒルズ', lat: 35.66250, lon: 139.73100, name: '六本木' },
+      { model: 'meijikinenkan', lat: 35.67740, lon: 139.72000, name: '明治記念館', spot: '明治記念館' },
+      { model: 'geihinkan', lat: 35.68037, lon: 139.72879, name: '迎賓館赤坂離宮', spot: '迎賓館赤坂離宮' },
+      { crown: 0x2a6fd6, lat: 35.68013, lon: 139.73469, r: 60, name: 'ホテルニューオータニ', spot: 'ホテルニューオータニ' },
+      { spot: '東京ミッドタウン・六本木ヒルズ', lat: 35.66250, lon: 139.73100, name: '六本木' },
       { model: 'shibuya109', lat: 35.65950, lon: 139.69870, name: 'SHIBUYA109' },
       { crown: 0xff7a1a, lat: 35.64360, lon: 139.66960, r: 90, name: 'キャロットタワー' },
       { model: 'komazawa', lat: 35.62550, lon: 139.66200, name: '駒沢オリンピック公園 記念塔' },
-      { model: 'skytree', lat: 35.71010, lon: 139.81070, name: '東京スカイツリー', far: true },
-      { model: 'fuji', lat: 35.36060, lon: 138.72740, name: '富士山', far: true },
+      ...CITY_LANDMARKS,
     ],
   },
 
   // ---- 提案ルート (準備中) ----
   {
-    id: 'c1-loop', playable: false,
+    id: 'c1-loop', playable: true,
     title: 'C1 都心環状線 一周',
-    sub: '江戸橋JCT・銀座の掘割・浜崎橋・竹橋のS字 (14.8km)',
+    sub: '内回り 芝公園スタート・銀座・江戸橋JCT・竹橋・皇居のお濠・霞が関',
     en: 'C1 INNER CIRCULAR',
-    km: 14.8,
-    note: '急カーブとトンネルが連続するテクニカルコース。東京タワーと皇居のお濠を眺めながら周回する。',
+    km: 13.8,
+    note: '急カーブとトンネルが連続するテクニカルコース。東京タワーから皇居のお濠を回って戻ってくる1周。',
+    data: C1_DATA,
+    sections: [
+      { s: 120, main: '都心環状線 内回り', sub: '芝公園スタート', en: 'C1 INNER CIRCULAR' },
+      { junction: '浜崎橋JCT', main: '浜崎橋JCT', sub: '1号羽田線・11号台場線と接続', en: 'HAMAZAKIBASHI JCT' },
+      { junction: '銀座', main: '銀座', sub: '掘割の中を抜ける', en: 'GINZA' },
+      { junction: '江戸橋ジャンクション', main: '江戸橋JCT', sub: '日本橋川の上', en: 'EDOBASHI JCT' },
+      { junction: '竹橋ジャンクション', main: '竹橋JCT', sub: '皇居のお濠沿い', en: 'TAKEBASHI JCT' },
+      { junction: '三宅坂ジャンクション', main: '三宅坂JCT', sub: '4号新宿線と接続', en: 'MIYAKEZAKA JCT' },
+      { junction: '谷町JCT', main: '谷町JCT', sub: 'ラストスパート', en: 'TANIMACHI JCT' },
+    ],
+    marks: [
+      { s: 120, name: '芝公園', kind: 'ic' },
+      { junction: '浜崎橋JCT', name: '浜崎橋JCT', kind: 'jct', dest: '1 羽田・11 台場' },
+      { junction: '汐留', name: '汐留', kind: 'ic' },
+      { junction: '銀座', name: '銀座', kind: 'ic' },
+      { junction: '宝町', name: '宝町', kind: 'ic' },
+      { junction: '江戸橋ジャンクション', name: '江戸橋JCT', kind: 'jct', dest: '6 向島・9 深川' },
+      { junction: '神田橋', name: '神田橋', kind: 'ic' },
+      { junction: '竹橋ジャンクション', name: '竹橋JCT', kind: 'jct', dest: '5 池袋' },
+      { junction: '代官町', name: '代官町', kind: 'ic' },
+      { junction: '三宅坂ジャンクション', name: '三宅坂JCT', kind: 'jct', dest: '4 新宿' },
+      { junction: '霞が関出口', name: '霞が関', kind: 'ic' },
+      { junction: '谷町JCT', name: '谷町JCT', kind: 'jct', dest: '3 渋谷' },
+      { junction: '一ノ橋JCT', name: '一ノ橋JCT', kind: 'jct', dest: '2 目黒' },
+      { s: C1_DATA.loop + 120, name: '芝公園', kind: 'goal', sign: '芝公園 FINISH' },
+    ],
+    routeNo: [{ s: 0, no: 'C1' }],
+    parks: [
+      { lat: 35.6855, lon: 139.7530, r: 820, kind: 'park', name: '皇居' },
+      { lat: 35.6930, lon: 139.7510, r: 330, kind: 'park', name: '北の丸公園' },
+      { lat: 35.6750, lon: 139.7570, r: 260, kind: 'park', name: '日比谷公園' },
+      { lat: 35.6780, lon: 139.7495, r: 230, kind: 'park', name: '国会前庭' },
+      { lat: 35.6590, lon: 139.7630, r: 330, kind: 'park', name: '浜離宮恩賜庭園' },
+      { lat: 35.6555, lon: 139.7485, r: 260, kind: 'park', name: '芝公園' },
+      { lat: 35.6905, lon: 139.7465, r: 120, kind: 'water', name: '千鳥ヶ淵' },
+      { lat: 35.6815, lon: 139.7475, r: 110, kind: 'water', name: '桜田濠' },
+      { lat: 35.6870, lon: 139.7600, r: 100, kind: 'water', name: '日比谷濠' },
+    ],
+    landmarks: [
+      ...CITY_LANDMARKS,
+    ],
   },
   {
     id: 'rainbow', playable: false,

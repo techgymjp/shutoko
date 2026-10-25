@@ -10,12 +10,29 @@
   国土交通省 Project PLATEAU 3D都市モデル 東京都23区 (2020年度)
 
 使い方:
-  python3 tools/build_course.py <path.json> <bldg ディレクトリ> > js/course-data.js
+  python3 tools/build_course.py <path.json> <bldg ディレクトリ> [変数名] [--loop] > js/course-data.js
+    --loop … path.json が1周の経路 (最初と最後が同じ点) のとき。ゴールのあとも走れるよう
+              スタートの先 900m を後ろにつなげ、その区間の建物も複製する
 """
 import bisect, glob, json, math, sys
 
-path_file, bldg_dir = sys.argv[1], sys.argv[2]
+args = [a for a in sys.argv[1:] if not a.startswith('--')]
+path_file, bldg_dir = args[0], args[1]
+VAR = args[2] if len(args) > 2 else 'COURSE_DATA'
+LOOP_MODE = '--loop' in sys.argv
+CONT = 900
 raw = json.load(open(path_file))
+LOOP = None
+if LOOP_MODE:
+    # 1周の長さを測り、最初の CONT m ぶんの点を後ろに足す
+    def d(a, b):
+        return math.hypot((b[1] - a[1]) * 111320 * math.cos(math.radians(a[0])), (b[0] - a[0]) * 110574)
+    LOOP = sum(d(a, b) for a, b in zip(raw, raw[1:]))
+    acc0, k = 0, 1
+    while k < len(raw) and acc0 < CONT + 50:
+        acc0 += d(raw[k - 1], raw[k])
+        k += 1
+    raw = raw + raw[1:k]
 LAT0, LON0 = raw[0][0], raw[0][1]
 KX = 111320 * math.cos(math.radians(LAT0))
 KZ = 110574
@@ -191,7 +208,13 @@ for f in sorted(glob.glob(bldg_dir + '/*.json')):
         rec = [round(h * 2), len(q), q[0][0], q[0][1]]
         for (x0, z0), (x1, z1) in zip(q, q[1:]):
             rec += [x1 - x0, z1 - z0]
-        recs.append((i * STEP // CHUNK, rec, bd['n'] if bd['n'] and h >= 40 else None))
+        sb = i * STEP
+        if LOOP and sb >= LOOP:
+            sb -= LOOP
+        recs.append((int(sb // CHUNK), rec, bd['n'] if bd['n'] and h >= 40 else None))
+        # 1周のコース: スタート付近の建物はゴールのあとの区間にも置く
+        if LOOP and sb < CONT + 300 and sb + LOOP < L:
+            recs.append((int((sb + LOOP) // CHUNK), rec, None))
 
 # チャンク (200m) ごとに並べる。bidx[k] = チャンク k の先頭の位置 (b の添字)
 recs.sort(key=lambda r: r[0])
@@ -214,6 +237,7 @@ data = {
     'z': [round(v, 1) for v in zs],
     'h': [round(v, 1) for v in hs],
     'tunnels': tunnels,
+    'loop': round(LOOP) if LOOP else None,
     'junctions': junctions,
     'chunk': CHUNK,
     'bidx': bidx,
@@ -223,4 +247,4 @@ data = {
 }
 sys.stderr.write(f'length {L:.0f}m points {N} buildings {len(out)} dropped {dropped} ints {len(flat)} tunnels {tunnels}\n')
 sys.stdout.write('// 自動生成 (tools/build_course.py)。' + data['source'] + '\n')
-sys.stdout.write('export const COURSE_DATA = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n')
+sys.stdout.write('export const ' + VAR + ' = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n')

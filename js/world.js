@@ -647,8 +647,10 @@ export class World {
 
   barrierZones() {
     if (this.bz) return this.bz;
+    // コースで決めた2つの出口の外側 (住宅地) だけ。指定がなければ遮音壁なし
+    const names = this.course.def.barrierMarks;
     const m = (n) => this.course.marks.find((x) => x.name === n)?.s ?? 0;
-    this.bz = [[300, m('初台') - 200], [m('池尻') + 300, this.course.length - 200]];
+    this.bz = names ? [[300, m(names[0]) - 200], [m(names[1]) + 300, this.course.length - 200]] : [];
     return this.bz;
   }
 
@@ -865,7 +867,7 @@ export class World {
         }
       } else if (m.kind === 'goal') {
         const s = m.s - 1000;
-        if (inRange(s)) this.gantry(g, s, signTex('goal1k', ['用賀 東名高速', 'GOAL まで 1km'], no), true);
+        if (inRange(s)) this.gantry(g, s, signTex('goal1k-' + m.name, [m.sign || m.name, 'GOAL まで 1km'], no), true);
       }
     }
     // キロポスト (100m ごと) と速度標識

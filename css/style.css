@@ -191,6 +191,9 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 #res-table td i { display: inline-block; width: 4px; height: 12px; margin-right: 6px; vertical-align: -1px; }
 #res-table tr.me td { color: #fff; background: rgba(255,42,106,0.3); font-weight: 900; }
 .r-btns { display: flex; gap: 10px; }
+.r-share { display: flex; gap: 10px; }
+.overlay .r-share button { background: #1d9bf0; border: none; }
+.overlay .r-share button#btn-copy { background: #2a3442; border: 1px solid rgba(255,255,255,0.2); }
 
 @media (max-width: 760px), (max-height: 520px) {
   #tower { display: none; }

@@ -53,6 +53,7 @@ const store = {
   set(k, v) { try { localStorage.setItem('shutoko.' + k, JSON.stringify(v)); } catch { /* 保存できなくても遊べる */ } },
 };
 const esc = (t) => String(t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+const SHARE_URL = 'https://techgym.jp/column/claude-code-game-shutoko/';
 const fmt = (t) => {
   const m = Math.floor(t / 60), s = t - m * 60;
   return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`;
@@ -171,6 +172,24 @@ $('btn-quit').addEventListener('click', () => toTitle());
 $('btn-again').addEventListener('click', () => { closeOverlays(); startRace(); });
 $('btn-title').addEventListener('click', () => toTitle());
 $('btn-pause').addEventListener('click', () => togglePause());
+// 結果のシェア: スマホは端末の共有メニュー、パソコンは X の投稿画面
+$('btn-share').addEventListener('click', async () => {
+  if (!G || !G.shareText) return;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ title: '首都高グランプリ', text: G.shareText, url: SHARE_URL }); return; } catch { /* キャンセル */ return; }
+  }
+  const u = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(G.shareText) + '&url=' + encodeURIComponent(SHARE_URL);
+  window.open(u, '_blank', 'noopener');
+});
+$('btn-copy').addEventListener('click', async () => {
+  if (!G || !G.shareText) return;
+  try {
+    await navigator.clipboard.writeText(G.shareText + ' ' + SHARE_URL);
+    flashMsg('結果をコピーしました');
+  } catch {
+    flashMsg('コピーできませんでした');
+  }
+});
 $('btn-mute').addEventListener('click', () => toggleMute());
 
 function flashMsg(t) {
@@ -591,7 +610,9 @@ function updateAI(dt) {
     // 自分より先に行きすぎた車は少し手を抜き、置いていかれた車は少し頑張る
     const behind = gap < 0 && G.mode === 'race' && !P.finished;
     const chasing = behind && gap > -300;
-    if (gap > 120) vt *= 1 - Math.min(0.06, (gap - 120) / 2500);
+    // 自分より 40m 以上前の車は、自分の速度より速く走らない (離れるほど少し遅く)。
+    // カーブで減速しても前の集団から離されず、どのコースでも抜きつ抜かれつになる
+    if (gap > 40 && G.mode === 'race' && !P.finished) vt = Math.min(vt, Math.max(P.v, 25) * (1 - Math.min(0.12, (gap - 40) / 1500)));
     else if (chasing) {
       // 自分の後ろ 300m 以内の車は、自分の速度を目安に追いかける (抜きつ抜かれつ)。
       // 自分がトップの時は本気で追い上げる
@@ -899,6 +920,7 @@ function showResult() {
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
     <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? esc(nameOf(r)) + ' (' + r.team.name + ')' : r.team.name}</td>
     <td>${fmt(t)}</td></tr>`).join('');
+  G.shareText = `首都高グランプリ「${G.def.title}」で${P.rank}位！ タイム ${fmt(P.time)}（12番グリッドから${G.overtakes}台抜き） #首都高グランプリ`;
   $('result').hidden = false;
   Sound.silence();
 }
@@ -1079,8 +1101,14 @@ function updateHUD(dt) {
   for (const L of G.course.landmarks) {
     if (L.spot && !G.spots.has(L.name) && P.s > L.s - 450 && P.s < L.s) {
       G.spots.add(L.name);
+      // 見える方向 (左手・右手・正面) は道路の向きから決める。遠すぎる時は出さない
+      const q = G.course.at(P.s);
+      const dx = L.x - q.x, dz = L.z - q.z;
+      if (Math.hypot(dx, dz) > 1200) continue;
+      const ang = Math.atan2(dx * q.lx + dz * q.lz, dx * q.tx + dz * q.tz) * 180 / Math.PI;
+      const where = Math.abs(ang) < 20 ? '正面に' : ang > 0 ? '左手に' : '右手に';
       const el = $('announce');
-      el.textContent = L.spot;
+      el.textContent = `${where} ${L.spot}`;
       el.classList.add('show');
       setTimeout(() => el.classList.remove('show'), 4000);
     }

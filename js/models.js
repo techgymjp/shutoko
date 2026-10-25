@@ -767,7 +767,7 @@ const MODELS = {
       g.add(side);
     }
     // 屋上の看板
-    const tex = canvasTex('techgym-sign', 1024, 320, (c, w, h) => {
+    const tex = canvasTex('techgym-sign2', 1024, 320, (c, w, h) => {
       c.fillStyle = '#0b1a2e';
       c.fillRect(0, 0, w, h);
       c.fillStyle = '#ff7a00';
@@ -780,7 +780,7 @@ const MODELS = {
       c.fillText('TECH GYM', w / 2, h * 0.42);
       c.fillStyle = '#ffb347';
       c.font = `900 56px ${JP}`;
-      c.fillText('テックジム  VORT永田町 6F', w / 2, h * 0.8);
+      c.fillText('テックジム東京本校  永田町4番出口', w / 2, h * 0.8);
     });
     // 屋上から鉄塔を立て、まわりの高層ビル (ガーデンテラス紀尾井町 178m など) の上に看板を掲げる
     // (弁慶濠の高架から見えるには、看板の下端が地上 約170m 以上必要)
@@ -826,18 +826,19 @@ const MODELS = {
     ball.position.y = BY;
     balloon.add(ball);
     // 垂れ幕 (縦書き)
-    const bannerTex = canvasTex('techgym-banner', 192, 1024, (c, w, h) => {
+    const bannerTex = canvasTex('techgym-banner2', 192, 1024, (c, w, h) => {
       c.fillStyle = '#ffffff';
       c.fillRect(0, 0, w, h);
       c.fillStyle = '#ff6a00';
       c.fillRect(0, 0, 14, h);
       c.fillRect(w - 14, 0, 14, h);
       c.fillStyle = '#0b1a2e';
-      c.font = `900 108px ${JP}`;
+      const txt = [...'テックジム東京本校'];
+      const step = (h - 60) / txt.length;
+      c.font = `900 ${Math.min(108, step * 0.9)}px ${JP}`;
       c.textAlign = 'center';
       c.textBaseline = 'middle';
-      const txt = 'テックジム平河町';
-      [...txt].forEach((ch, i) => c.fillText(ch, w / 2, 70 + i * 120));
+      txt.forEach((ch, i) => c.fillText(ch, w / 2, 30 + step * (i + 0.5)));
     });
     const banner = new THREE.Mesh(new THREE.PlaneGeometry(42, 226), fogless(new THREE.MeshBasicMaterial({ map: bannerTex, side: THREE.DoubleSide, color: night ? 0xffffff : 0xf2f2f2 })));
     banner.position.y = BY - BR - 117;
@@ -1142,7 +1143,7 @@ const MODELS = {
 // 首都高の左側に立てるテックジムの広告看板 (幅 14m)。+z が近づいてくる車の方
 export function makeTechGymBoard(night) {
   const g = new THREE.Group();
-  const tex = canvasTex('techgym-board', 1024, 384, (c, w, h) => {
+  const tex = canvasTex('techgym-board2', 1024, 384, (c, w, h) => {
     c.fillStyle = '#0b1a2e';
     c.fillRect(0, 0, w, h);
     c.fillStyle = '#ff7a00';
@@ -1161,7 +1162,7 @@ export function makeTechGymBoard(night) {
     c.fillText('テックジム この先左', 630, 232);
     c.fillStyle = '#d8e4f0';
     c.font = `700 46px ${JP}`;
-    c.fillText('平河町 VORT永田町 6F', 630, 312);
+    c.fillText('東京本校 永田町4番出口', 630, 312);
   });
   const panel = new THREE.Mesh(new THREE.PlaneGeometry(14, 5.25), new THREE.MeshBasicMaterial({ map: tex, color: night ? 0xffffff : 0xf0f0f0 }));
   panel.position.y = 7.6;

@@ -54,9 +54,10 @@ export class Course {
     this.tunnels = D.tunnels.map((t) => [...t]);
     // 区間・出口の位置: OSM の出口・JCT の名前 / 緯度経度 / ゴールからの距離
     const junc = new Map(D.junctions);
-    const posOf = (x) => x.junction != null ? junc.get(x.junction) ?? 0
-      : x.fromEnd != null ? this.length - x.fromEnd
-        : this.nearest(this.project(x.at[0], x.at[1]));
+    const posOf = (x) => x.s != null ? x.s
+      : x.junction != null ? junc.get(x.junction) ?? 0
+        : x.fromEnd != null ? this.length - x.fromEnd
+          : this.nearest(this.project(x.at[0], x.at[1]));
     this.sections = (def.sections || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     this.marks = (def.marks || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     this.routeNo = (def.routeNo || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
@@ -66,6 +67,8 @@ export class Course {
     this.landmarks = (def.landmarks || []).map((x) => {
       const L = { ...x, ...this.project(x.lat, x.lon) };
       L.s = this.nearest(L);
+      // 1周のコース: ゴールのあとの区間 (スタートの先と同じ場所) ではなく、1周目の位置を使う
+      if (D.loop && L.s > D.loop) L.s -= D.loop;
       return L;
     });
 
