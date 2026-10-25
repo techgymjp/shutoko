@@ -27,13 +27,13 @@ const ERS_SEC = 8;           // ERS 1 本ぶんで全開にできる秒数
 // band: 走っていて心地よい順位の範囲 (0 = 先頭, 1 = 最後尾)。この範囲だと ERS がよく溜まり、
 // 前に出すぎるとマシンが熱を持って回生できない。leadPen: 先頭の重圧で下がる最高速の割合
 const MACHINES = {
-  nige: { name: '逃げ', vmax: 350, accel: 1.08, grip: 29, ers: 0.5, ersPow: 0.07, band: [0, 0.1], leadPen: 0.05,
+  nige: { name: '逃げ', vmax: 350, accel: 1.08, grip: 29, ers: 0.5, ersPow: 0.07, band: [0, 0.05], leadPen: 0.05,
     desc: '先頭で風を受けても落ちにくい。ERSは短い。スタートから前へ出て押し切る。', stats: [5, 5, 5, 1] },
-  senko: { name: '先行', vmax: 344, accel: 1.04, grip: 28, ers: 0.8, ersPow: 0.09, band: [0.08, 0.36], leadPen: 0.1,
+  senko: { name: '先行', vmax: 344, accel: 1.04, grip: 28, ers: 0.8, ersPow: 0.09, band: [0.08, 0.3], leadPen: 0.1,
     desc: '2〜4番手が心地よい。前の集団で風よけを使い、残り1kmで抜け出す。', stats: [5, 4, 4, 2] },
-  sashi: { name: '差し', vmax: 338, accel: 1.0, grip: 27, ers: 1.1, ersPow: 0.11, band: [0.4, 0.72], leadPen: 0.12,
+  sashi: { name: '差し', vmax: 338, accel: 1.0, grip: 27, ers: 1.1, ersPow: 0.11, band: [0.35, 0.65], leadPen: 0.12,
     desc: '中団（5〜8番手）でERSを溜め、ゴール前で一気に差す。', stats: [4, 4, 4, 4] },
-  oikomi: { name: '追込', vmax: 332, accel: 0.97, grip: 26, ers: 1.6, ersPow: 0.13, band: [0.74, 1], leadPen: 0.14,
+  oikomi: { name: '追込', vmax: 332, accel: 0.97, grip: 26, ers: 1.6, ersPow: 0.13, band: [0.7, 1], leadPen: 0.14,
     desc: '後方で我慢するほどERSが満ちる。最後の直線で大外からまくる。', stats: [3, 3, 3, 5] },
 };
 const MACHINE_KEYS = Object.keys(MACHINES);
