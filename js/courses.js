@@ -8,6 +8,9 @@ import { C2_DATA } from './course-c2-data.js';
 import { R6_DATA } from './course-r6-data.js';
 import { R1_DATA } from './course-r1-data.js';
 import { RBR_DATA } from './course-rbr-data.js';
+import { R5_DATA } from './course-r5-data.js';
+import { WE_DATA } from './course-we-data.js';
+import { R2_DATA } from './course-r2-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -342,5 +345,122 @@ export const COURSES = [
       { lat: 35.5870, lon: 139.7470, r: 220, kind: 'park', name: '平和島公園' },
     ],
     landmarks: [...CITY_LANDMARKS],
+  },
+  {
+    id: 'ikebukuro', playable: true,
+    title: '5号池袋線 サンシャイン',
+    sub: '竹橋JCT → 飯田橋 → 江戸川橋 → 護国寺 → 東池袋 → 熊野町JCT → 板橋JCT → 高島平',
+    en: 'ROUTE 5  IKEBUKURO LINE',
+    km: 15.8,
+    note: '日本橋川と神田川の上をくねくね北上。右手にサンシャイン60がそびえる池袋を抜けて、板橋から高島平まで一気に駆け抜ける。',
+    data: R5_DATA,
+    sections: [
+      { s: 150, main: '5号池袋線', sub: '竹橋から北へ', en: 'ROUTE 5  IKEBUKURO LINE' },
+      { junction: '飯田橋', main: '飯田橋', sub: '神田川の上を西へ', en: 'IIDABASHI' },
+      { junction: '護国寺', main: '護国寺', sub: '池袋へ上り坂', en: 'GOKOKUJI' },
+      { junction: '東池袋', main: '東池袋', sub: 'サンシャイン60', en: 'HIGASHI-IKEBUKURO' },
+      { junction: '板橋JCT', main: '板橋JCT', sub: 'C2 中央環状線と接続', en: 'ITABASHI JCT' },
+      { junction: '中台', main: '中台', sub: 'ラストスパート', en: 'NAKADAI' },
+    ],
+    marks: [
+      { s: 150, name: '竹橋', kind: 'ic' },
+      { junction: '西神田', name: '西神田', kind: 'ic' },
+      { junction: '飯田橋', name: '飯田橋', kind: 'ic' },
+      { junction: '早稲田', name: '早稲田', kind: 'ic' },
+      { junction: '護国寺', name: '護国寺', kind: 'ic' },
+      { junction: '東池袋', name: '東池袋', kind: 'ic' },
+      { junction: '北池袋', name: '北池袋', kind: 'ic' },
+      { junction: '熊野町JCT', name: '熊野町JCT', kind: 'jct', dest: 'C2 中央環状線' },
+      { junction: '板橋JCT', name: '板橋JCT', kind: 'jct', dest: 'C2 中央環状線' },
+      { junction: '板橋本町', name: '板橋本町', kind: 'ic' },
+      { junction: '中台', name: '中台', kind: 'ic' },
+      { fromEnd: 380, name: '高島平', kind: 'goal', sign: '高島平 戸田 美女木JCT' },
+    ],
+    routeNo: [{ s: 0, no: '5' }],
+    parks: [
+      { lat: 35.6905, lon: 139.7510, r: 300, kind: 'park', name: '北の丸公園' },
+      { lat: 35.7055, lon: 139.7495, r: 220, kind: 'park', name: '小石川後楽園' },
+      { lat: 35.7190, lon: 139.7270, r: 200, kind: 'park', name: '護国寺' },
+      { lat: 35.7225, lon: 139.7205, r: 200, kind: 'park', name: '雑司ヶ谷霊園' },
+    ],
+    landmarks: [
+      { lat: 35.72940, lon: 139.71826, name: 'サンシャイン60', spot: 'サンシャイン60' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  {
+    id: 'wangan-east', playable: true,
+    title: '湾岸線 東行き 海底トンネル',
+    sub: '大井JCT → 東京港トンネル → 有明JCT → 東雲JCT → 辰巳JCT → 新木場 → 葛西JCT',
+    en: 'BAYSHORE ROUTE  EASTBOUND',
+    km: 11.8,
+    note: '海の下の東京港トンネルをくぐって湾岸の超高速ストレートへ。左にビッグサイト、ゴールの先に葛西臨海公園の大観覧車。',
+    data: WE_DATA,
+    sections: [
+      { s: 150, main: '湾岸線 東行き', sub: '大井JCTから東へ', en: 'BAYSHORE ROUTE' },
+      { s: 1000, main: '東京港トンネル', sub: '海の下をくぐる', en: 'TOKYO PORT TUNNEL' },
+      { junction: '有明ジャンクション', main: '有明JCT', sub: '湾岸の高層ビル群', en: 'ARIAKE JCT' },
+      { junction: '辰巳ジャンクション', main: '辰巳JCT', sub: '超高速ストレート', en: 'TATSUMI JCT' },
+      { junction: '新木場', main: '新木場', sub: 'ラストスパート', en: 'SHIN-KIBA' },
+    ],
+    marks: [
+      { s: 150, name: '大井JCT', kind: 'ic' },
+      { junction: '臨海副都心', name: '臨海副都心', kind: 'ic' },
+      { junction: '有明ジャンクション', name: '有明JCT', kind: 'jct', dest: '11 台場線' },
+      { junction: '東雲ジャンクション', name: '東雲JCT', kind: 'jct', dest: '10 晴海線' },
+      { junction: '辰巳ジャンクション', name: '辰巳JCT', kind: 'jct', dest: '9 深川線' },
+      { junction: '新木場', name: '新木場', kind: 'ic' },
+      { fromEnd: 380, name: '葛西JCT', kind: 'goal', sign: '葛西JCT C2 中央環状線' },
+    ],
+    routeNo: [{ s: 0, no: 'B' }],
+    parks: [
+      { lat: 35.6170, lon: 139.7640, r: 500, kind: 'water', name: '東京港 (第一航路)' },
+      { lat: 35.6380, lon: 139.8150, r: 450, kind: 'water', name: '東雲運河・辰巳' },
+      { lat: 35.6380, lon: 139.8420, r: 700, kind: 'water', name: '荒川河口' },
+      { lat: 35.6530, lon: 139.8270, r: 350, kind: 'park', name: '夢の島公園' },
+      { lat: 35.6400, lon: 139.8600, r: 450, kind: 'park', name: '葛西臨海公園' },
+      { lat: 35.6460, lon: 139.8060, r: 220, kind: 'park', name: '辰巳の森海浜公園' },
+    ],
+    landmarks: [
+      { model: 'bigsight', lat: 35.62990, lon: 139.79430, face: [35.6355, 139.7921], name: '東京ビッグサイト', spot: '東京ビッグサイト' },
+      { model: 'ferriswheel', lat: 35.64250, lon: 139.86140, face: [35.6440, 139.8500], name: '葛西臨海公園 大観覧車', spot: '葛西臨海公園の大観覧車' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  {
+    id: 'meguro', playable: true,
+    title: '2号目黒線 タワー下り',
+    sub: '霞が関 → 谷町JCT → 飯倉 → 一ノ橋JCT → 天現寺 → 目黒 → 戸越',
+    en: 'ROUTE 2  MEGURO LINE',
+    km: 8.2,
+    note: '霞が関のトンネルを出ると東京タワーが目の前。一ノ橋JCTの急カーブから目黒線へ。短くてカーブの多いスプリント。',
+    data: R2_DATA,
+    sections: [
+      { s: 150, main: '都心環状線 外回り', sub: '霞が関から谷町へ', en: 'C1 OUTER LOOP' },
+      { junction: '谷町JCT', main: '谷町JCT', sub: '右手に東京タワー', en: 'TANIMACHI JCT' },
+      { junction: '一ノ橋JCT', main: '一ノ橋JCT', sub: '2号目黒線へ', en: 'ICHINOHASHI JCT' },
+      { junction: '天現寺出口', main: '天現寺', sub: '恵比寿のビル街', en: 'TENGENJI' },
+      { junction: '目黒', main: '目黒', sub: 'ラストスパート', en: 'MEGURO' },
+    ],
+    marks: [
+      { s: 150, name: '霞が関', kind: 'ic' },
+      { junction: '谷町JCT', name: '谷町JCT', kind: 'jct', dest: '3 渋谷線' },
+      { junction: '飯倉', name: '飯倉', kind: 'ic' },
+      { junction: '一ノ橋JCT', name: '一ノ橋JCT', kind: 'jct', dest: '2 目黒線' },
+      { junction: '天現寺出口', name: '天現寺', kind: 'ic' },
+      { junction: '目黒', name: '目黒', kind: 'ic' },
+      { fromEnd: 300, name: '戸越', kind: 'goal', sign: '戸越 荏原' },
+    ],
+    routeNo: [{ s: 0, no: 'C1' }, { junction: '一ノ橋JCT', no: '2' }],
+    parks: [
+      { lat: 35.6555, lon: 139.7485, r: 260, kind: 'park', name: '芝公園' },
+      { lat: 35.6380, lon: 139.7195, r: 280, kind: 'park', name: '自然教育園' },
+      { lat: 35.6515, lon: 139.7245, r: 160, kind: 'park', name: '有栖川宮記念公園' },
+    ],
+    landmarks: [
+      { lat: 35.66040, lon: 139.72930, name: '六本木ヒルズ', spot: '六本木ヒルズ' },
+      { lat: 35.64200, lon: 139.71400, name: '恵比寿ガーデンプレイス', spot: '恵比寿ガーデンプレイス' },
+      ...CITY_LANDMARKS,
+    ],
   },
 ];

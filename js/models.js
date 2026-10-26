@@ -1059,6 +1059,56 @@ const MODELS = {
     g.add(pyr);
     return g;
   },
+  // 東京ビッグサイト: 逆三角すいを4つ並べた会議棟
+  bigsight(night) {
+    const g = new THREE.Group();
+    const wall = mat(0xc9ccd0), steel = mat(0xb7bec6, { emissive: night ? 0x303844 : 0 });
+    g.add(solid(150, 16, 110, 0xd6d8da, 0, 0, 40));
+    g.add(solid(46, 30, 46, 0x9aa4ad, 0, 0, -10));
+    for (const [x, z] of [[-24, -34], [24, -34], [-24, 14], [24, 14]]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 34, 8), wall);
+      leg.position.set(x, 17, z);
+      g.add(leg);
+      const pyr = new THREE.Mesh(new THREE.ConeGeometry(30, 26, 4, 1), steel);
+      pyr.rotation.set(Math.PI, Math.PI / 4, 0);
+      pyr.position.set(x, 45, z);
+      g.add(pyr);
+    }
+    return g;
+  },
+  // 葛西臨海公園の大観覧車 (高さ 117m)
+  ferriswheel(night) {
+    const g = new THREE.Group();
+    const R = 55, H = 62;
+    const white = mat(0xeef0f2, { emissive: night ? 0x4060a0 : 0 });
+    for (const z of [-3, 3]) {
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.9, 6, 64), white);
+      rim.position.set(0, H, z);
+      g.add(rim);
+    }
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.BoxGeometry(0.5, R, 0.5), white);
+      sp.position.set((Math.cos(a) * R) / 2, H + (Math.sin(a) * R) / 2, 0);
+      sp.rotation.z = a - Math.PI / 2;
+      g.add(sp);
+    }
+    const colors = [0xe8463c, 0xf2a03a, 0xf2d43a, 0x4cb860, 0x3a8ee8, 0x9a5ad8];
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2;
+      const c = colors[i % colors.length];
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.6, 3.2), mat(c, { emissive: night ? c : 0 }));
+      cab.position.set(Math.cos(a) * R, H + Math.sin(a) * R - 2.4, 0);
+      g.add(cab);
+    }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, H / Math.cos(0.32), 8), white);
+      leg.position.set(sx * Math.tan(0.32) * H / 2, H / 2, sz * 8);
+      leg.rotation.z = -sx * 0.32;
+      g.add(leg);
+    }
+    return g;
+  },
   tokyotower(night) {
     const g = new THREE.Group();
     const red = new THREE.MeshLambertMaterial({ color: 0xe8461e, emissive: night ? 0xb03a10 : 0x000000 });
