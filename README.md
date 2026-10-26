@@ -131,6 +131,8 @@ npm run android:sync   # www/ にコピーして Android プロジェクトへ�
 npm run android:open   # Android Studio で開く
 ```
 
+Google Play の掲載情報（日英の紹介文・アイコン・フィーチャーグラフィック・スクリーンショット）は `docs/store/` にあります（`listing.md`）。
+
 Google Play 用は `ADMOB_MODE=production npm run build && npx cap copy android` で本番広告に切り替えてから `./gradlew bundleRelease`（CI が自動で行います）。
 
 <img src="docs/apk-qr.png" width="180" alt="Android 版 APK のリリース画面の QR コード">

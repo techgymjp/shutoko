@@ -1,0 +1,47 @@
+Shutoko GP - Google Play store listing (English / en-US)
+
+[App name] (max 30 characters)
+
+Shutoko GP: Tokyo Highway Race
+
+[Short description] (max 80 characters)
+
+Race Tokyo's real Shuto Expressway in 3D at 360 km/h - start last, win it late!
+
+[Full description]
+
+Flat-out formula racing on Tokyo's Shuto Expressway.
+
+You always start last of 12 cars. Overtake on elevated highways, draft through tunnels and steal the win in the final metres — all from the driver's seat, on a faithful 3D recreation of Tokyo's urban expressway.
+
+■ THE REAL SHUTO EXPRESSWAY AND TOKYO
+• Road layouts from OpenStreetMap and buildings from PLATEAU, Japan's official 3D city models
+• 16 courses inside Tokyo's 23 wards: Shinjuku Line, the C1 Inner Circular, Rainbow Bridge, the Bayshore Route, the Yamate Tunnel, Haneda, Ikebukuro, Meguro, the Arakawa riverside and more
+• Pass the National Stadium, Tokyo Tower, Tokyo Skytree, Rainbow Bridge, Odaiba and Mt. Fuji — on-screen callouts tell you what's on your left and right
+• Day, dusk and night. At night the Rainbow Bridge lights up in rainbow colours
+
+■ STRATEGY WINS RACES
+• Leading means no slipstream — the leader slows under pressure
+• Draft behind rivals, charge your ERS battery and unleash it at the very end
+• Every machine has a hidden character. Listen to team radio and your engineer's notes to learn how your car likes to race
+• Cars behind you push past 360 km/h, so the battle never lets up
+
+■ CRASH, BUT KEEP RACING
+• Sparks, debris and shaking on every hit — but your car never breaks
+• Squeeze through gaps, scraping bodywork as you pass
+
+■ EASY TO PLAY
+• Left hand steers, right hand accelerates and brakes, ERS for a burst of speed
+• Records and best times saved for each driver name
+
+■ COURSE KEYS
+• Finish a course to unlock the next one
+• Watch an ad to race a locked course right away
+
+■ FEATURES
+• Plays offline (ads and sharing need a connection)
+• Share your results with friends
+• Japanese on-screen text
+
+Road data © OpenStreetMap contributors (ODbL) / Building data processed from Project PLATEAU (MLIT, Japan)
+This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
