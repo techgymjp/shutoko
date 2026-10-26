@@ -1188,6 +1188,14 @@ function frame(now, noRender) {
 
 function render() {
   renderer.clear();
+  // デバッグ: 外から見るカメラ (dbg.freeCam = [x, y, z, 見る先 x, y, z])
+  if (DEBUG && window.dbg?.freeCam) {
+    const f = window.dbg.freeCam;
+    camera.position.set(f[0], f[1], f[2]);
+    camera.lookAt(f[3], f[4], f[5]);
+    renderer.render(G.scene, camera);
+    return;
+  }
   renderer.render(G.scene, camera);
   renderer.clearDepth();
   renderer.render(G.cockpit.scene, G.cockpit.camera);

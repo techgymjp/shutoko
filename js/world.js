@@ -3,7 +3,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { rng, STEP } from './route.js';
 import {
   asphaltTex, concreteTex, barrierTex, tunnelWallTex, windowTex, signTex, bannerTex, checkerTex,
-  plateTex, makeLandmark, makeTechGymBoard, makePlane, mat, canvasTex,
+  plateTex, makeLandmark, makeTechGymBoard, makePlane, makeYurikamome, mat, canvasTex,
 } from './models.js';
 
 // 道路の寸法 (m)。横位置は進行方向の左が +
@@ -435,6 +435,7 @@ export class World {
     }
     // ランドマーク
     const center = c.at(c.length / 2);
+    let towers = null;
     for (const L of c.landmarks) {
       if (L.crown) this.addCrown(L);
       const o = L.model && makeLandmark(L.model, T.night);
@@ -461,8 +462,10 @@ export class World {
       this.scene.add(o);
       o.updateMatrixWorld(true);
       if (o.userData.balloon) (this.balloons = this.balloons || []).push(o.userData.balloon);
+      if (L.model === 'rbtower') (towers = towers || []).push(L);
       if (T.night && !L.far) this.addAviationLight(o, x, z);
     }
+    if (towers && towers.length >= 2) this.buildBridgeCables(towers[0], towers[1]);
     // 夜は高いビル (100m 以上) の屋上に航空障害灯
     if (T.night) {
       const D = c.def.data;
@@ -557,11 +560,156 @@ export class World {
       pl.m.position.set(a.x + (b.x - a.x) * k, a.h + (b.h - a.h) * k, a.z + (b.z - a.z) * k);
       pl.m.rotation.set(Math.atan2(a.h - b.h, Math.hypot(b.x - a.x, b.z - a.z)) * 0.6, Math.atan2(-(b.x - a.x), -(b.z - a.z)), 0, 'YXZ');
     }
+    // ゆりかもめ (コースで指定した線路を行ったり来たり)
+    if (this.course.def.yurikamome && !this.trains) this.buildYurikamome();
+    for (const tr of this.trains || []) {
+      const T = this.rail.len;
+      let d = (t * 15 + tr.off) % (2 * T);
+      const back = d > T;
+      if (back) d = 2 * T - d;
+      tr.cars.forEach((car, i) => {
+        const dd = Math.max(0, Math.min(T, d + (back ? i : -i) * 9.2));
+        const q = this.railAt(dd), q2 = this.railAt(Math.min(T, dd + 2));
+        const dir = back ? -1 : 1;
+        car.position.set(q.x, q.y, q.z);
+        car.rotation.y = Math.atan2(-(q2.x - q.x) * dir, -(q2.z - q.z) * dir);
+      });
+    }
     // アドバルーンが風でゆっくり揺れる
     for (const b of this.balloons || []) {
       b.rotation.z = Math.sin(t * 0.5) * 0.03;
       b.rotation.x = Math.sin(t * 0.37 + 1) * 0.025;
       b.rotation.y = t * 0.05;
+    }
+  }
+
+  // ゆりかもめの線路: [緯度, 経度, 高さ, 橋] の点列。橋 = true の点はレインボーブリッジの下の段 (道路の線に合わせる)
+  buildYurikamome() {
+    const c = this.course;
+    const DROP = 10;
+    const onDeck = (s) => {
+      const r = c.at(s, OPP_OFF / 2);
+      return { x: r.x, y: Math.max(6, r.y - DROP + 0.6), z: r.z, deck: true, s };
+    };
+    const pts = [];
+    for (const [la, lo, h, deck] of this.course.def.yurikamome) {
+      const q = c.project(la, lo);
+      if (!deck) { pts.push({ x: q.x, y: h, z: q.z }); continue; }
+      const s = c.nearest(q);
+      const prev = pts[pts.length - 1];
+      // 橋の上は道路の線に沿って 10m ごとに点を足す
+      if (prev && prev.deck) {
+        const dir = s > prev.s ? 1 : -1;
+        for (let ss = prev.s + dir * 10; dir * (s - ss) > 0; ss += dir * 10) pts.push(onDeck(ss));
+      }
+      pts.push(onDeck(s));
+    }
+    let len = 0;
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) {
+      len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
+      cum.push(len);
+    }
+    this.rail = { pts, cum, len };
+    // 橋以外の区間は専用の高架 (床と柱)
+    const geo = new Geo();
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (a.deck && b.deck) continue;
+      const seg = cum[i] - cum[i - 1];
+      const yaw = Math.atan2(b.x - a.x, b.z - a.z);
+      for (let d = 0; d < seg; d += 6) {
+        const k = (d + 3) / seg;
+        const x = a.x + (b.x - a.x) * k, z = a.z + (b.z - a.z) * k, y = a.y + (b.y - a.y) * k;
+        geo.box(x, y - 1.2, z, 7, 1.2, 6.2, yaw);
+        if (d % 30 < 6 && y > 3) geo.box(x, 0, z, 1.6, y - 1.2, 1.6, yaw);
+      }
+    }
+    if (geo.n) this.scene.add(geo.mesh(this.M.pier));
+    this.trains = [0, 0.5].map((f) => {
+      const cars = [];
+      const proto = makeYurikamome(this.theme.night);
+      // 1両ずつ別に動かす (カーブで折れ曲がるように)
+      for (let i = 0; i < 6; i++) {
+        const car = new THREE.Group();
+        for (const m of proto.children.slice(i * 3, i * 3 + 3)) {
+          const mm = m.clone();
+          mm.position.z -= i * 9.2;
+          car.add(mm);
+        }
+        this.scene.add(car);
+        cars.push(car);
+      }
+      return { cars, off: f * 2 * len };
+    });
+  }
+
+  railAt(d) {
+    const { pts, cum } = this.rail;
+    let i = 1;
+    while (i < pts.length - 1 && cum[i] < d) i++;
+    const a = pts[i - 1], b = pts[i];
+    const k = Math.max(0, Math.min(1, (d - cum[i - 1]) / Math.max(1e-6, cum[i] - cum[i - 1])));
+    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k };
+  }
+
+  // 吊り橋の主ケーブル: 2本の塔の頂上をつなぐ放物線と、塔から外側へ下りる側径間。ハンガーロープも垂らす
+  // 夜は主ケーブルに虹色の電飾 (レインボーブリッジ)
+  buildBridgeCables(A, B) {
+    const c = this.course;
+    const TOP = 124, SIDE = 140;
+    const [sA, sB] = A.s < B.s ? [A.s, B.s] : [B.s, A.s];
+    const center = A.off ?? -5;
+    const cable = new THREE.MeshBasicMaterial({ color: this.theme.night ? 0xc8d8ff : 0xe4e4e4 });
+    const hang = [], lights = [], col = [], cc = new THREE.Color();
+    const q = {};
+    for (const side of [-12, 12]) {
+      const off = center + side;
+      const pts = [];
+      const add = (s, y, hanger) => {
+        c.at(s, off, q);
+        pts.push(new THREE.Vector3(q.x, y, q.z));
+        if (hanger) hang.push(q.x, y, q.z, q.x, q.y + 1.2, q.z);
+      };
+      // 側径間: 道路のわきを、塔の頂上から路面の近くまで下りる (道路に沿うので道路の上を横切らない)
+      for (let i = 0; i < 14; i++) {
+        const k = i / 14;
+        const s = sA - SIDE + SIDE * k;
+        const yd = c.at(s).y + 3;
+        add(s, yd + (TOP - yd) * k * k, i > 0);
+      }
+      // 中央径間: 放物線で路面の少し上まで垂れる
+      const n = 40;
+      const low = c.at((sA + sB) / 2).y + 3;
+      for (let i = 0; i <= n; i++) {
+        const k = i / n;
+        add(sA + (sB - sA) * k, low + (TOP - low) * (2 * k - 1) ** 2, i > 0 && i < n);
+      }
+      for (let i = 1; i <= 14; i++) {
+        const k = i / 14;
+        const s = sB + SIDE * k;
+        const yd = c.at(s).y + 3;
+        add(s, yd + (TOP - yd) * (1 - k) ** 2, i < 14);
+      }
+      const curve = new THREE.CatmullRomCurve3(pts);
+      this.scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 200, 0.9, 6), cable));
+      if (this.theme.night) {
+        for (let i = 0; i <= 220; i++) {
+          const v = curve.getPoint(i / 220);
+          lights.push(v.x, v.y + 1, v.z);
+          cc.setHSL((i / 220) * 0.85, 1, 0.6);
+          col.push(cc.r, cc.g, cc.b);
+        }
+      }
+    }
+    const hg = new THREE.BufferGeometry();
+    hg.setAttribute('position', new THREE.Float32BufferAttribute(hang, 3));
+    this.scene.add(new THREE.LineSegments(hg, new THREE.LineBasicMaterial({ color: this.theme.night ? 0x8090b0 : 0xcfd3d6 })));
+    if (lights.length) {
+      const lg = new THREE.BufferGeometry();
+      lg.setAttribute('position', new THREE.Float32BufferAttribute(lights, 3));
+      lg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      this.scene.add(new THREE.Points(lg, new THREE.PointsMaterial({ size: 4, sizeAttenuation: false, vertexColors: true, fog: false })));
     }
   }
 
@@ -657,6 +805,7 @@ export class World {
       for (const off of [HALF + 0.3, OPP_OFF - HALF - 0.3]) {
         g.add(new THREE.Mesh(sweep(c, hiA, hiB, st, (p) => [[off, p.y + 1.15], [off, p.y + 1.3]], { uScale: 4, vScale: 4 }), M.pole));
       }
+      this.buildLowerDeck(g, hiA, hiB);
     }
     // 遮音壁 (住宅地の区間)
     const barrierZones = this.barrierZones();
@@ -669,8 +818,60 @@ export class World {
     // 地上の一般道 (甲州街道・六本木通り・玉川通り)
     g.add(new THREE.Mesh(sweep(c, a, b, 8, (p) => {
       const o = OPP_OFF / 2;
-      return [[o + 15, 0.06], [o - 15, 0.06]];
+      const y = p.y > 30 ? -5 : 0.06; // 海の上の吊り橋の下には描かない
+      return [[o + 15, y], [o - 15, y]];
     }, { uFixed: [0, 1], vScale: 30 }), M.street));
+  }
+
+  // 吊り橋の2階建て構造: 上が首都高、下の段は一般道とゆりかもめ。両わきを白いトラスでつなぐ
+  buildLowerDeck(g, a, b) {
+    const c = this.course;
+    const M = this.M;
+    const L = HALF + 0.5, R = OPP_OFF - HALF - 0.5;
+    const DROP = 10; // 上の路面から下の段の路面まで
+    const truss = M.truss || (M.truss = new THREE.MeshLambertMaterial({ color: 0xe8ebee, side: THREE.DoubleSide }));
+    // 下の段の床と両わきの下弦材
+    g.add(new THREE.Mesh(sweep(c, a, b, 8, (p) => [[L, p.y - DROP], [R, p.y - DROP], [R, p.y - DROP - 1.2], [L, p.y - DROP - 1.2], [L, p.y - DROP]]), truss));
+    for (const off of [L, R]) {
+      g.add(new THREE.Mesh(sweep(c, a, b, 8, (p) => [[off, p.y - DROP + 0.8], [off, p.y - DROP - 0.6]]), truss));
+    }
+    // 下の段の一般道の路面 (中央はゆりかもめの軌道)
+    g.add(new THREE.Mesh(sweep(c, a, b, 8, (p) => [[L - 0.5, p.y - DROP + 0.02], [L - 6.5, p.y - DROP + 0.02]], { uFixed: [0, 1], vScale: 20 }), M.oppRoad));
+    g.add(new THREE.Mesh(sweep(c, a, b, 8, (p) => [[R + 6.5, p.y - DROP + 0.02], [R + 0.5, p.y - DROP + 0.02]], { uFixed: [0, 1], vScale: 20 }), M.oppRoad));
+    // 縦材と斜材 (7m ごと)
+    const geo = new Geo();
+    const p = {}, q = {};
+    const SP = 7;
+    for (let s = Math.ceil(a / SP) * SP; s < b - SP; s += SP) {
+      for (const off of [L, R]) {
+        c.at(s, off, p);
+        const yaw = yawOf(p.a);
+        geo.box(p.x, p.y - DROP, p.z, 0.45, DROP - 2.4, 0.45, yaw);
+        // 斜材: 細い箱を何個か並べて斜めの線にする
+        c.at(s + SP, off, q);
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const k = (i + 0.5) / n;
+          const x = p.x + (q.x - p.x) * k, z = p.z + (q.z - p.z) * k;
+          const y0 = p.y - DROP + (DROP - 2.4) * ((s / SP) % 2 ? k : 1 - k);
+          geo.box(x, y0 - 0.6, z, 0.3, 1.2, SP / n + 0.1, yaw);
+        }
+      }
+    }
+    if (geo.n) g.add(geo.mesh(truss));
+    // 夜は下の段の両わきに白い灯り
+    if (this.theme.night) {
+      const pts = [];
+      for (let s = Math.ceil(a / 10) * 10; s < b; s += 10) {
+        for (const off of [L + 0.3, R - 0.3]) {
+          c.at(s, off, p);
+          pts.push(p.x, p.y - DROP + 0.9, p.z);
+        }
+      }
+      const pg = new THREE.BufferGeometry();
+      pg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+      g.add(new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xdfeaff, size: 3, sizeAttenuation: false })));
+    }
   }
 
   barrierZones() {
@@ -690,7 +891,7 @@ export class World {
       if (c.inTunnel(s)) continue;
       c.at(s, OPP_OFF / 2, p);
       const yaw = yawOf(p.a);
-      if (p.y > 5) {
+      if (p.y > 5 && p.y <= 30) { // 30m より高い所は吊り橋 (橋脚なし)
         const h = p.y - 2.4;
         piers.box(p.x, 0, p.z, 3.2, h - 1.4, 2.4, yaw);
         piers.box(p.x, h - 1.6, p.z, ROAD_W * 2 + 2, 1.6, 2.2, yaw + Math.PI / 2 * 0); // 横梁

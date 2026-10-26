@@ -503,26 +503,18 @@ const MODELS = {
       beam.position.set(0, y, 0);
       g.add(beam);
     }
-    // 主ケーブル (塔から両側へ垂れる)
-    const cable = new THREE.MeshBasicMaterial({ color: night ? 0xc8d8ff : 0xdadada });
-    for (const sz of [-12, 12]) {
-      for (const dir of [-1, 1]) {
-        const pts = [];
-        for (let i = 0; i <= 12; i++) {
-          const t = i / 12;
-          pts.push(new THREE.Vector3(dir * t * 280, 124 - 70 * Math.sin(t * Math.PI * 0.5), sz));
-        }
-        const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.8, 5), cable);
-        g.add(tube);
-      }
-    }
+    // 主ケーブルは2本の塔をつないで world.js で作る (buildBridgeCables)
     if (night) {
-      // 夜はライトアップ (白い光の粒)
+      // 夜はライトアップ: 主塔は白い光の粒
       const lights = [];
       for (let i = 0; i <= 40; i++) lights.push(0, 2 + i * 3, -12, 0, 2 + i * 3, 12);
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(lights, 3));
       g.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 3, sizeAttenuation: false })));
+      // 塔の頂上の赤い航空障害灯
+      const ag = new THREE.BufferGeometry();
+      ag.setAttribute('position', new THREE.Float32BufferAttribute([0, 128, -12, 0, 128, 12], 3));
+      g.add(new THREE.Points(ag, new THREE.PointsMaterial({ color: 0xff2a1a, size: 6, sizeAttenuation: false, fog: false })));
     }
     return g;
   },
@@ -1109,6 +1101,28 @@ const MODELS = {
     }
     return g;
   },
+  // お台場の自由の女神像 (台座 + 像 約12m)
+  liberty(night) {
+    const g = new THREE.Group();
+    const green = mat(0x7fb5a2, { emissive: night ? 0x2a5a4a : 0 });
+    g.add(solid(8, 3, 8, 0xb9b2a4));
+    g.add(solid(5, 6, 5, 0xc9c2b4, 0, 3, 0));
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, 9, 10), green);
+    body.position.y = 13.5;
+    g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.0, 10, 8), green);
+    head.position.y = 18.6;
+    g.add(head);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 5, 6), green);
+    arm.position.set(1.3, 19.5, 0);
+    arm.rotation.z = -0.2;
+    g.add(arm);
+    const torch = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.2, 8), new THREE.MeshBasicMaterial({ color: night ? 0xffd27a : 0xd8b04a }));
+    torch.position.set(1.8, 22.5, 0);
+    torch.rotation.x = Math.PI;
+    g.add(torch);
+    return g;
+  },
   tokyotower(night) {
     const g = new THREE.Group();
     const red = new THREE.MeshLambertMaterial({ color: 0xe8461e, emissive: night ? 0xb03a10 : 0x000000 });
@@ -1338,4 +1352,25 @@ export function makeTechGymBoard(night) {
 export function makeLandmark(name, night) {
   const f = MODELS[name];
   return f ? f(night) : null;
+}
+
+// ゆりかもめ (6両。前 = -z)
+export function makeYurikamome(night) {
+  const g = new THREE.Group();
+  const body = mat(0xf4f6f8, { emissive: night ? 0x222833 : 0 });
+  const stripe = mat(0x1f6fd0, { emissive: night ? 0x0a2a66 : 0 });
+  const win = new THREE.MeshLambertMaterial({ color: night ? 0xfff2c8 : 0x2a3540, emissive: night ? 0xffe2a0 : 0x000000 });
+  for (let i = 0; i < 6; i++) {
+    const z = i * 9.2;
+    const car = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3.0, 8.8), body);
+    car.position.set(0, 1.9, z);
+    g.add(car);
+    const st = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.35, 8.8), stripe);
+    st.position.set(0, 1.0, z);
+    g.add(st);
+    const w = new THREE.Mesh(new THREE.BoxGeometry(2.56, 0.9, 7.6), win);
+    w.position.set(0, 2.4, z);
+    g.add(w);
+  }
+  return g;
 }

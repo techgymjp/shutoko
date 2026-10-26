@@ -16,6 +16,21 @@ import { R7_DATA } from './course-r7-data.js';
 import { R9_DATA } from './course-r9-data.js';
 import { C2E_DATA } from './course-c2e-data.js';
 import { R3U_DATA } from './course-r3u-data.js';
+import { ODB_DATA } from './course-odaiba-data.js';
+
+// レインボーブリッジとお台場 (レインボーブリッジを渡るコースで共通)
+const ODAIBA_LANDMARKS = [
+  { model: 'rbtower', lat: 35.63709, lon: 139.76172, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔' },
+  { model: 'rbtower', lat: 35.63575, lon: 139.76602, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔2' },
+  { model: 'odaibasphere', lat: 35.62700, lon: 139.77460, name: 'フジテレビ本社ビル', spot: 'フジテレビ本社ビル（球体展望室）' },
+  { model: 'liberty', lat: 35.62820, lon: 139.77170, face: [35.6370, 139.7620], name: '自由の女神像', spot: 'お台場の自由の女神像' },
+];
+// ゆりかもめの線路 [緯度, 経度, 高さm, 橋の下の段か]: 芝浦ふ頭 → レインボーブリッジの下の段 → お台場海浜公園 → 台場
+const YURIKAMOME = [
+  [35.6425, 139.7565, 10], [35.6400, 139.7575, 18],
+  [35.6385, 139.7588, 0, true], [35.63709, 139.76172, 0, true], [35.63575, 139.76602, 0, true], [35.6352, 139.7683, 0, true],
+  [35.6345, 139.7720, 22], [35.6328, 139.7760, 14], [35.6298, 139.7786, 12], [35.6275, 139.7757, 12], [35.6258, 139.7714, 12],
+];
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -171,6 +186,7 @@ export const COURSES = [
     km: 9.6,
     note: '海の上の高さ約50mのレインボーブリッジから、お台場を抜けて湾岸線へ。海の下の東京港トンネルをくぐる。夜景がおすすめ。',
     data: RAINBOW_DATA,
+    yurikamome: YURIKAMOME,
     sections: [
       { s: 150, main: '11号台場線', sub: '芝浦JCT からレインボーブリッジへ', en: 'ROUTE 11  DAIBA LINE' },
       { at: [35.63709, 139.76172], main: 'レインボーブリッジ', sub: '東京港の上 高さ約50m', en: 'RAINBOW BRIDGE' },
@@ -199,9 +215,7 @@ export const COURSES = [
       { lat: 35.6180, lon: 139.7880, r: 350, kind: 'park', name: 'シンボルプロムナード公園' },
     ],
     landmarks: [
-      { model: 'rbtower', lat: 35.63709, lon: 139.76172, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔' },
-      { model: 'rbtower', lat: 35.63575, lon: 139.76602, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔2' },
-      { model: 'odaibasphere', lat: 35.62700, lon: 139.77460, name: 'お台場の球体展望室', spot: 'お台場の球体展望室' },
+      ...ODAIBA_LANDMARKS,
       ...CITY_LANDMARKS,
     ],
   },
@@ -213,6 +227,7 @@ export const COURSES = [
     km: 10.2,
     note: '海の上のレインボーブリッジから、正面に東京タワーと都心の高層ビル。橋の上は壁が低く、海と街が見わたせる。',
     data: RBR_DATA,
+    yurikamome: YURIKAMOME,
     sections: [
       { s: 150, main: '湾岸線 西行き', sub: '辰巳から有明JCTへ', en: 'BAYSHORE ROUTE' },
       { junction: '有明ジャンクション', main: '有明JCT', sub: '11号台場線へ', en: 'ARIAKE JCT' },
@@ -240,9 +255,7 @@ export const COURSES = [
       { lat: 35.6590, lon: 139.7630, r: 330, kind: 'park', name: '浜離宮恩賜庭園' },
     ],
     landmarks: [
-      { model: 'rbtower', lat: 35.63709, lon: 139.76172, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔' },
-      { model: 'rbtower', lat: 35.63575, lon: 139.76602, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔2' },
-      { model: 'odaibasphere', lat: 35.62700, lon: 139.77460, name: 'お台場の球体展望室', spot: 'お台場の球体展望室' },
+      ...ODAIBA_LANDMARKS,
       ...CITY_LANDMARKS,
     ],
   },
@@ -665,6 +678,55 @@ export const COURSES = [
       { crown: 0xff7a1a, lat: 35.64360, lon: 139.66960, r: 90, name: 'キャロットタワー', spot: 'キャロットタワー' },
       { model: 'shibuya109', lat: 35.65950, lon: 139.69870, name: 'SHIBUYA109', spot: 'SHIBUYA109' },
       { spot: '東京ミッドタウン・六本木ヒルズ', lat: 35.66250, lon: 139.73100, name: '六本木' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  {
+    id: 'odaiba-loop', playable: true,
+    title: 'お台場ぐるり レインボーブリッジ',
+    sub: '汐留 → 浜崎橋JCT → 芝浦JCT → レインボーブリッジ → 台場 → 有明JCT → 湾岸線 → 辰巳JCT → 9号深川線 → 箱崎JCT → 江戸橋JCT',
+    en: 'ODAIBA ROUND  RAINBOW BRIDGE',
+    km: 13.8,
+    note: '浜崎橋JCTからレインボーブリッジを渡ってお台場へ。湾岸線の直線から辰巳JCTで深川の運河の上を北上し、日本橋の江戸橋JCTまで。橋・海・運河を一度に味わう。',
+    data: ODB_DATA,
+    yurikamome: YURIKAMOME,
+    sections: [
+      { s: 120, main: 'C1 都心環状線', sub: '汐留から浜崎橋JCTへ', en: 'C1 CENTRAL CIRCULAR' },
+      { junction: '芝浦JCT', main: '芝浦JCT', sub: '11号台場線へ', en: 'SHIBAURA JCT' },
+      { at: [35.63709, 139.76172], main: 'レインボーブリッジ', sub: '東京港の上 高さ約50m', en: 'RAINBOW BRIDGE' },
+      { junction: '有明ジャンクション', main: '有明JCT', sub: '湾岸線 東行きへ', en: 'ARIAKE JCT' },
+      { junction: '辰巳ジャンクション', main: '辰巳JCT', sub: '9号深川線へ', en: 'TATSUMI JCT' },
+      { junction: '木場', main: '木場', sub: '深川の運河の上', en: 'KIBA' },
+      { junction: '箱崎ジャンクション', main: '箱崎JCT', sub: 'ラストスパート', en: 'HAKOZAKI JCT' },
+    ],
+    marks: [
+      { s: 120, name: '汐留', kind: 'ic' },
+      { junction: '浜崎橋JCT', name: '浜崎橋JCT', kind: 'jct', dest: '11 台場線' },
+      { junction: '芝浦JCT', name: '芝浦JCT', kind: 'jct', dest: '11 台場線' },
+      { junction: '台場', name: '台場', kind: 'ic' },
+      { junction: '有明ジャンクション', name: '有明JCT', kind: 'jct', dest: 'B 湾岸線' },
+      { junction: '辰巳ジャンクション', name: '辰巳JCT', kind: 'jct', dest: '9 深川線' },
+      { junction: '枝川', name: '枝川', kind: 'ic' },
+      { junction: '木場', name: '木場', kind: 'ic' },
+      { junction: '箱崎ジャンクション', name: '箱崎JCT', kind: 'jct', dest: '6 向島線' },
+      { fromEnd: 250, name: '江戸橋JCT', kind: 'goal', sign: '江戸橋JCT 日本橋' },
+    ],
+    routeNo: [{ s: 0, no: 'C1' }, { junction: '芝浦JCT', no: '11' }, { junction: '有明ジャンクション', no: 'B' }, { junction: '辰巳ジャンクション', no: '9' }],
+    parks: [
+      { lat: 35.6590, lon: 139.7630, r: 330, kind: 'park', name: '浜離宮恩賜庭園' },
+      { lat: 35.6360, lon: 139.7630, r: 700, kind: 'water', name: '東京港 (芝浦〜台場)' },
+      { lat: 35.6250, lon: 139.7600, r: 900, kind: 'water', name: '東京港' },
+      { lat: 35.6420, lon: 139.7700, r: 450, kind: 'water', name: '東京港 (日の出)' },
+      { lat: 35.6380, lon: 139.7830, r: 350, kind: 'water', name: '東京港 (有明)' },
+      { lat: 35.6310, lon: 139.7720, r: 220, kind: 'park', name: 'お台場海浜公園' },
+      { lat: 35.6380, lon: 139.8150, r: 450, kind: 'water', name: '東雲運河・辰巳' },
+      { lat: 35.6460, lon: 139.8060, r: 220, kind: 'park', name: '辰巳の森海浜公園' },
+      { lat: 35.6745, lon: 139.8070, r: 260, kind: 'park', name: '木場公園' },
+      { lat: 35.6800, lon: 139.7920, r: 170, kind: 'water', name: '隅田川' },
+    ],
+    landmarks: [
+      ...ODAIBA_LANDMARKS,
+      { model: 'bigsight', lat: 35.62990, lon: 139.79430, face: [35.6355, 139.7921], name: '東京ビッグサイト', spot: '東京ビッグサイト' },
       ...CITY_LANDMARKS,
     ],
   },
