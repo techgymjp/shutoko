@@ -102,7 +102,7 @@
         <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。前の車の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。</p>
         <p>……ただし、マシンにもそれぞれ<b>クセ</b>があるようです。前で引っぱるのが好きなマシン、後ろでじっと力を溜めるマシン——。チーム無線に耳を傾け、レース後のエンジニアの言葉をヒントに、<b>あなたのマシンに合った走り方</b>を見つけてください。</p>
         <p>急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
-        <p class="app-only">アプリ版では、大きくぶつかったあとに<b>広告を見て、ぶつかる前に巻き戻す</b>ことができます（1レース3回まで）。</p>
+        <p class="app-only">コースを完走すると、<b>次のコースの鍵</b>が開きます。鍵のかかったコースも、<b>広告を見れば</b>そのレースを走れます。</p>
       </div>
       <div class="scr-btns">
         <button id="btn-howto-play" class="primary">プレイ</button>
@@ -133,20 +133,12 @@
         </div>
       </div>
       <button id="btn-start">スタート</button>
+      <div id="lock-note" hidden></div>
       <div id="best"></div>
       <div class="t-credit">道路: © OpenStreetMap contributors（ODbL）　建物: 国土交通省 Project PLATEAU 3D都市モデル（東京都23区）を加工して作成</div>
     </div>
   </div>
 
-  <!-- 巻き戻し (リワード広告。アプリのみ) -->
-  <div id="redo" hidden>
-    <div class="redo-msg">📺 広告を見て、ぶつかる前に巻き戻す？</div>
-    <div class="redo-btns">
-      <button id="redo-watch">巻き戻す</button>
-      <button id="redo-next">このまま走る</button>
-    </div>
-    <div id="redo-note"></div>
-  </div>
   <div id="toast"></div>
   <div id="credit">© OpenStreetMap contributors / 国土交通省 PLATEAU</div>
 
@@ -164,6 +156,7 @@
       <div class="r-head">RESULT</div>
       <div class="r-pos"><b id="res-pos">1</b><span>位</span></div>
       <div id="res-time"></div>
+      <div id="res-unlock" hidden></div>
       <div id="res-stats"></div>
       <div id="res-notes"></div>
       <table id="res-table"></table>

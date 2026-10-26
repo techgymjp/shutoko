@@ -61,7 +61,6 @@ const plugin = (name) => (NATIVE && window.Capacitor.Plugins ? window.Capacitor.
 const TOUCH = NATIVE || matchMedia('(pointer: coarse)').matches;
 document.body.classList.toggle('app', NATIVE);
 document.body.classList.toggle('touch', TOUCH);
-const REWIND_MAX = 3;   // 巻き戻し (リワード広告) は 1 レース 3 回まで
 const fmt = (t) => {
   const m = Math.floor(t / 60), s = t - m * 60;
   return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`;
@@ -118,14 +117,14 @@ window.addEventListener('keydown', (e) => {
   if (KEYMAP[e.code]) { input[KEYMAP[e.code]] = true; e.preventDefault(); }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (e.code === 'KeyM') toggleMute();
-  if (e.code === 'Enter' && !$('title').hidden) beginRace();
+  if (e.code === 'Enter' && !$('title').hidden) startSelected();
 });
 window.addEventListener('keyup', (e) => { if (KEYMAP[e.code]) input[KEYMAP[e.code]] = false; });
-window.addEventListener('blur', () => { for (const k in input) input[k] = false; if (G && G.mode === 'race' && !G.hold) togglePause(true); });
+window.addEventListener('blur', () => { for (const k in input) input[k] = false; if (G && G.mode === 'race') togglePause(true); });
 // 裏に回ったら一時停止して音を止める (広告の表示中は広告側が音を止めている)
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    if (G && G.mode === 'race' && !G.hold) togglePause(true);
+    if (G && G.mode === 'race') togglePause(true);
     Sound.suspend();
   } else if (!Ads.showing) {
     Sound.resume();
@@ -148,7 +147,8 @@ function buildTitle() {
   list.innerHTML = '';
   COURSES.forEach((c, i) => {
     const el = document.createElement('button');
-    el.className = 'course-card' + (c.playable ? '' : ' locked') + (i === selected ? ' sel' : '');
+    const open = isUnlocked(i);
+    el.className = 'course-card' + (c.playable ? '' : ' locked') + (open ? '' : ' key') + (i === selected ? ' sel' : '');
     el.innerHTML = `
       <div class="cc-no">${i + 1}</div>
       <div class="cc-body">
@@ -156,7 +156,7 @@ function buildTitle() {
         <div class="cc-sub">${c.sub}</div>
         ${c.note ? `<div class="cc-note">${c.note}</div>` : ''}
       </div>
-      <div class="cc-km">${c.playable ? '<b>PLAY</b>' : '<span>準備中</span>'}${c.km ? `<small>${c.km}km</small>` : ''}</div>`;
+      <div class="cc-km">${!c.playable ? '<span>準備中</span>' : open ? '<b>PLAY</b>' : '<em>🔒</em><span>広告で解放</span>'}${c.km ? `<small>${c.km}km</small>` : ''}</div>`;
     el.addEventListener('click', () => {
       if (!c.playable) { flashMsg('このルートは準備中です'); return; }
       selected = i;
@@ -168,6 +168,11 @@ function buildTitle() {
     b.classList.toggle('sel', b.dataset.t === theme);
   }
   $('driver-name').value = driverName;
+  const locked = !isUnlocked(selected);
+  $('btn-start').textContent = locked ? '📺 広告を見てスタート' : 'スタート';
+  $('btn-start').classList.toggle('ad', locked);
+  $('lock-note').hidden = !locked;
+  if (locked) $('lock-note').textContent = `「${COURSES[selected - 1].title}」を完走すると鍵が開きます。広告を最後まで見れば、今すぐこのコースを走れます。`;
   const pr = profile();
   const best = pr.best[COURSES[selected].id];
   $('best').textContent = pr.races ? `戦績 ${pr.races}戦 ${pr.wins}勝` + (best ? `　ベスト ${fmt(best.time)}（${best.pos}位）` : '') : '';
@@ -175,7 +180,7 @@ function buildTitle() {
 for (const b of document.querySelectorAll('#themes button')) {
   b.addEventListener('click', () => { theme = b.dataset.t; store.set('theme', theme); buildTitle(); });
 }
-$('btn-start').addEventListener('click', () => beginRace());
+$('btn-start').addEventListener('click', () => startSelected());
 $('btn-play').addEventListener('click', () => showScreen('title'));
 $('btn-howto').addEventListener('click', () => showScreen('howto'));
 $('btn-howto-play').addEventListener('click', () => showScreen('title'));
@@ -244,7 +249,7 @@ function toggleMute() {
   $('btn-mute').textContent = Sound.muted ? '🔇' : '🔊';
 }
 function togglePause(force) {
-  if (!G || G.hold || (G.mode !== 'race' && G.mode !== 'paused' && G.mode !== 'countdown')) return;
+  if (!G || (G.mode !== 'race' && G.mode !== 'paused' && G.mode !== 'countdown')) return;
   const pause = force ?? G.mode !== 'paused';
   if (pause && G.mode !== 'paused') {
     G.prevMode = G.mode;
@@ -259,7 +264,6 @@ function togglePause(force) {
 }
 function toTitle() {
   closeOverlays();
-  closeRedo();
   disposeGame();
   $('hud').hidden = true;
   $('touch').hidden = true;
@@ -284,14 +288,14 @@ function buildTop() {
 // バナー広告 (アプリのみ): トップ・あそびかた・ルート選択・ポーズ・結果画面だけ。レース中は操作ボタンと重なるので出さない
 function updateBanner() {
   const menu = !G && screen != null;
-  const stopped = G && !G.hold && (G.mode === 'paused' || G.mode === 'result');
+  const stopped = G && (G.mode === 'paused' || G.mode === 'result');
   Ads.setBanner(!!(menu || stopped));
 }
 
 // Android の戻るボタン: レース中はポーズ (ポーズ中なら再開)、トップ・結果画面ではアプリを閉じる
 if (plugin('App')) {
   plugin('App').addListener('backButton', () => {
-    if (adBusy || Ads.showing || (G && G.hold)) return;
+    if (adBusy || unlocking || Ads.showing) return;
     if (G) {
       if (G.mode === 'result') plugin('App').exitApp();
       else if (G.mode === 'paused') withInterstitial(() => togglePause(false));
@@ -309,101 +313,42 @@ if (window.APP_VERSION && window.APP_VERSION !== 'dev') $('buildInfo').textConte
 Ads.initDone.then(() => { if (Ads.privacyOptionsRequired) $('adPrivacy').hidden = false; });
 $('adPrivacyLink').addEventListener('click', (e) => { e.preventDefault(); Ads.showPrivacyOptions(); });
 
-// ---------------- 巻き戻し (リワード広告のチート。アプリのみ・1 レース 3 回まで) ----------------
-// 大きくぶつかったら、少しして「広告を見て、ぶつかる前に巻き戻す？」を出す。最後まで見ると、
-// ぶつかる約3秒前の状態 (全車の位置・速度・ERS・タイム) に戻してレースを続ける
-const REDO_DELAY = 2.5, REDO_WAIT = 5, REWIND_BACK = 3, SNAP_EVERY = 0.5, SNAP_KEEP = 30;
-const redo = { active: false, busy: false, t: 0, pending: 0, crashT: 0 };
-const G_SKIP = new Set(['t', 'dt', 'slowmo', 'shake', 'flash', 'red', 'jolt', 'lightsOut', 'countdown', 'prevMode', 'hold', 'rewinds']);
-const plainCopy = (o, skip) => {
-  const out = {};
-  for (const k in o) {
-    const v = o[k];
-    if ((typeof v === 'number' || typeof v === 'boolean') && !(skip && skip.has(k))) out[k] = v;
-  }
-  return out;
-};
-function takeSnapshot() {
-  if (!Ads.canReward || G.mode !== 'race') return;
-  if (G.snaps.length && G.raceT - G.snaps[G.snaps.length - 1].raceT < SNAP_EVERY) return;
-  G.snaps.push({ raceT: G.raceT, g: plainCopy(G, G_SKIP), racers: G.racers.map((r) => plainCopy(r)) });
-  if (G.snaps.length > SNAP_KEEP) G.snaps.shift();
+// ---------------- コースの鍵 (リワード広告。アプリのみ) ----------------
+// コースを完走すると、次のコースの鍵が開く。鍵のかかったコースも、広告を最後まで見ればそのレースを走れる。
+// 広告を出せない Web 版では、すべてのコースを走れる
+const LOCKS = Ads.canReward;
+const cleared = () => store.get('cleared', []);
+function isUnlocked(i) {
+  if (!LOCKS || i === 0) return true;
+  const c = cleared();
+  return c.includes(COURSES[i].id) || c.includes(COURSES[i - 1].id);
 }
-function onBigCrash() {
-  if (!Ads.canReward || !G || G.mode !== 'race' || G.player.finished) return;
-  if (G.rewinds >= REWIND_MAX || redo.active || redo.pending > 0) return;
-  redo.pending = REDO_DELAY;
-  redo.crashT = G.raceT;
+// 完走を記録し、次のコースの鍵がこれで開いたら、そのコースを返す
+function markCleared(id) {
+  const c = cleared();
+  if (c.includes(id)) return null;
+  const i = COURSES.findIndex((x) => x.id === id);
+  const next = COURSES[i + 1];
+  const opened = LOCKS && next && !isUnlocked(i + 1) ? next : null;
+  c.push(id);
+  store.set('cleared', c);
+  return opened;
 }
-function showRedo() {
-  Object.assign(redo, { active: true, busy: false, t: REDO_WAIT, pending: 0 });
-  $('redo-watch').disabled = false;
-  $('redo-watch').textContent = '巻き戻す';
-  $('redo-note').textContent = `あと ${REWIND_MAX - G.rewinds} 回（1レース${REWIND_MAX}回まで）`;
-  $('redo').hidden = false;
-}
-function closeRedo() {
-  redo.active = false;
-  redo.pending = 0;
-  $('redo').hidden = true;
-}
-function updateRedo(dt) {
-  if (redo.pending > 0) {
-    redo.pending -= dt;
-    if (redo.pending <= 0) showRedo();
-    return;
-  }
-  if (!redo.active || redo.busy) return;
-  redo.t -= dt;
-  $('redo-next').textContent = `このまま走る（${Math.max(0, Math.ceil(redo.t))}）`;
-  if (redo.t <= 0 || G.player.finished) closeRedo();
-}
-// 広告の表示中はレースを止めておく (ポーズ画面は出さない)
-function holdGame(on) {
-  if (!G) return;
-  if (on && !G.hold) {
-    G.hold = true;
-    G.prevMode = G.mode;
-    G.mode = 'paused';
-    Sound.silence();
-  } else if (!on && G.hold) {
-    G.hold = false;
-    G.mode = G.prevMode;
-  }
-  updateBanner();
-}
-$('redo-next').addEventListener('click', closeRedo);
-$('redo-watch').addEventListener('click', async () => {
-  if (!redo.active || redo.busy || !G) return;
-  redo.busy = true;
-  $('redo-watch').disabled = true;
-  $('redo-watch').textContent = '読み込み中…';
-  for (const k in input) input[k] = false;
-  holdGame(true);
-  const game = G;
+// ルート選択の「スタート」: 鍵のかかったコースは広告を最後まで見たら走れる (このときは全画面広告は出さない)
+let unlocking = false;
+async function startSelected() {
+  if (isUnlocked(selected)) { beginRace(); return; }
+  if (unlocking || adBusy) return;
+  unlocking = true;
+  const btn = $('btn-start');
+  btn.disabled = true;
+  btn.textContent = '読み込み中…';
   const result = await Ads.showRewarded();
-  if (G !== game) return;
-  if (result === 'unavailable') {
-    $('redo-note').textContent = '広告を読み込めませんでした';
-    holdGame(false);
-    setTimeout(closeRedo, 1500);
-    return;
-  }
-  closeRedo();
-  if (result === 'rewarded') rewind();
-  holdGame(false);
-});
-function rewind() {
-  // ぶつかる約3秒前のスナップショット (なければいちばん古いもの)
-  let snap = G.snaps[0];
-  for (const s of G.snaps) if (s.raceT <= redo.crashT - REWIND_BACK) snap = s;
-  if (!snap) return;
-  Object.assign(G, snap.g);
-  G.racers.forEach((r, i) => Object.assign(r, snap.racers[i]));
-  G.snaps = G.snaps.filter((s) => s.raceT <= snap.raceT);
-  G.rewinds++;
-  G.shake = G.flash = G.red = G.slowmo = 0;
-  showAlert('巻き戻し!', 'good', 1200);
+  unlocking = false;
+  btn.disabled = false;
+  buildTitle();
+  if (result === 'rewarded') { closeOverlays(); startRace(); return; }
+  flashMsg(result === 'skipped' ? '広告を最後まで見ると、このコースを走れます' : '広告を読み込めませんでした。少しあとでお試しください');
 }
 
 // ---------------- レースの準備 ----------------
@@ -418,7 +363,6 @@ function disposeGame() {
 function startRace() {
   Sound.init();
   disposeGame();
-  closeRedo();
   for (const s of SCREENS) $(s).hidden = true;
   screen = null;
   $('hud').hidden = false;
@@ -490,7 +434,6 @@ function startRace() {
     towerT: 0, finishT: 0, spots: new Set(), hitLog: [],
     M: MACHINES[styleKey], styleKey, hidden, ers: 0, ersOn: false, leadT: 0, penalty: 0, penCd: 0, calls: new Set(),
     fit: 'behind', fitT: { ahead: 0, fit: 0, behind: 0 }, radioT: 12, lastRadio: '', ersEmptyAt: null,
-    hold: false, snaps: [], rewinds: 0,
   };
   updateBanner();
   G.ers = G.M.ers;
@@ -660,7 +603,6 @@ function hitFx(power, pos, vel, kind, color = 0xf3f3f3) {
     : (power > 0.6 ? ['ドカン!!', '激突!!', 'ガツン!!'] : ['接触!', 'コツン!', 'バチッ!']);
   showAlert(words[Math.floor(Math.random() * words.length)], power > 0.6 ? 'big' : '', 900);
   G.hits++;
-  if (power > 0.6) onBigCrash();
   G.hitLog.push(`${kind}:${power.toFixed(2)}@${Math.round(G.player.s)}`);
 }
 
@@ -1075,8 +1017,10 @@ function showResult() {
     <span>スタート <b>${P.slot + 1}番グリッド</b></span>
     <span>オーバーテイク <b>${G.overtakes}</b></span>
     <span>接触 <b>${G.hits}</b>回</span>
-    <span>最高速 <b>${Math.round(G.best * KMH)}</b>km/h</span>${G.rewinds ? `
-    <span>巻き戻し <b>${G.rewinds}</b>回</span>` : ''}`;
+    <span>最高速 <b>${Math.round(G.best * KMH)}</b>km/h</span>`;
+  const opened = markCleared(G.def.id);
+  $('res-unlock').hidden = !opened;
+  if (opened) $('res-unlock').textContent = `🔓 次のコース「${opened.title}」の鍵が開いた！`;
   // 最終順位 (まだ走っている車は予想タイム)
   const rows = [...G.racers].map((r) => ({ r, t: r.finished ? r.time : G.raceT + (G.goalS - r.s) / Math.max(30, r.v) }))
     .sort((a, b) => a.t - b.t);
@@ -1105,8 +1049,7 @@ function showResult() {
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
     <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? esc(nameOf(r)) + ' (' + r.team.name + ')' : r.team.name}</td>
     <td>${fmt(t)}</td></tr>`).join('');
-  G.shareText = `首都高グランプリ「${G.def.title}」で${P.rank}位！ タイム ${fmt(P.time)}（12番グリッドから${G.overtakes}台抜き${G.rewinds ? `・巻き戻し${G.rewinds}回` : ''}） #首都高グランプリ`;
-  closeRedo();
+  G.shareText = `首都高グランプリ「${G.def.title}」で${P.rank}位！ タイム ${fmt(P.time)}（12番グリッドから${G.overtakes}台抜き） #首都高グランプリ`;
   $('result').hidden = false;
   Sound.silence();
   updateBanner();
@@ -1336,7 +1279,6 @@ function frame(now, noRender) {
   updateRanks();
   updateAttack(dt);
   if (G.mode === 'race') checkFinish();
-  if (G.mode === 'race') { takeSnapshot(); updateRedo(dt); }
   const P = G.player;
   // トンネルの暗さ
   const inT = G.course.inTunnel(P.s + 5) ? 1 : 0;
