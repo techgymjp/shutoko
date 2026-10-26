@@ -11,6 +11,7 @@ import { RBR_DATA } from './course-rbr-data.js';
 import { R5_DATA } from './course-r5-data.js';
 import { WE_DATA } from './course-we-data.js';
 import { R2_DATA } from './course-r2-data.js';
+import { C2N_DATA } from './course-c2n-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -460,6 +461,49 @@ export const COURSES = [
     landmarks: [
       { lat: 35.66040, lon: 139.72930, name: '六本木ヒルズ', spot: '六本木ヒルズ' },
       { lat: 35.64200, lon: 139.71400, name: '恵比寿ガーデンプレイス', spot: '恵比寿ガーデンプレイス' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  {
+    id: 'arakawa', playable: true,
+    title: 'C2 荒川リバーサイド',
+    sub: '中央環状線 熊野町JCT → 板橋JCT → 王子 → 江北JCT → 荒川沿い → 小菅JCT → 堀切JCT → 四つ木',
+    en: 'C2  ARAKAWA RIVERSIDE',
+    km: 15.2,
+    note: '王子のトンネルを抜けると荒川の河川敷が広がる。川沿いの長い高架を、正面のスカイツリーに向かって全開で。',
+    data: C2N_DATA,
+    sections: [
+      { s: 150, main: 'C2 中央環状線', sub: '熊野町JCT から東へ', en: 'C2 CENTRAL CIRCULAR' },
+      { junction: '板橋JCT', main: '板橋JCT', sub: '5号池袋線と接続', en: 'ITABASHI JCT' },
+      { junction: '王子南', main: '王子', sub: '飛鳥山トンネルを抜けて', en: 'OJI' },
+      { junction: '江北JCT', main: '江北JCT', sub: '荒川沿いへ', en: 'KOHOKU JCT' },
+      { junction: '小菅JCT', main: '小菅JCT', sub: '6号三郷線と接続', en: 'KOSUGE JCT' },
+      { junction: '堀切JCT', main: '堀切JCT', sub: 'ラストスパート', en: 'HORIKIRI JCT' },
+    ],
+    marks: [
+      { s: 150, name: '熊野町JCT', kind: 'ic' },
+      { junction: '板橋JCT', name: '板橋JCT', kind: 'jct', dest: '5 池袋線' },
+      { junction: '王子南', name: '王子南', kind: 'ic' },
+      { junction: '江北JCT', name: '江北JCT', kind: 'jct', dest: 'S1 川口線' },
+      { junction: '千住新橋', name: '千住新橋', kind: 'ic' },
+      { junction: '小菅JCT', name: '小菅JCT', kind: 'jct', dest: '6 三郷線' },
+      { junction: '堀切JCT', name: '堀切JCT', kind: 'jct', dest: '6 向島線' },
+      { fromEnd: 380, name: '四つ木', kind: 'goal', sign: '四つ木 葛西JCT 湾岸線' },
+    ],
+    routeNo: [{ s: 0, no: 'C2' }],
+    parks: [
+      { lat: 35.7520, lon: 139.7385, r: 200, kind: 'park', name: '飛鳥山公園' },
+      { lat: 35.7640, lon: 139.7690, r: 220, kind: 'water', name: '荒川 (江北)' },
+      { lat: 35.7640, lon: 139.7790, r: 230, kind: 'water', name: '荒川 (扇大橋)' },
+      { lat: 35.7650, lon: 139.7890, r: 230, kind: 'water', name: '荒川 (西新井橋)' },
+      { lat: 35.7655, lon: 139.7990, r: 230, kind: 'water', name: '荒川 (千住新橋)' },
+      { lat: 35.7625, lon: 139.8100, r: 230, kind: 'water', name: '荒川 (小菅)' },
+      { lat: 35.7570, lon: 139.8205, r: 220, kind: 'water', name: '荒川 (小菅JCT)' },
+      { lat: 35.7480, lon: 139.8270, r: 230, kind: 'water', name: '荒川 (堀切)' },
+      { lat: 35.7390, lon: 139.8320, r: 230, kind: 'water', name: '荒川 (四つ木)' },
+    ],
+    landmarks: [
+      { lat: 35.75874, lon: 139.81763, name: '東京拘置所', spot: '小菅の東京拘置所' },
       ...CITY_LANDMARKS,
     ],
   },
