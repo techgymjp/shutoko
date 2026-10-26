@@ -13,6 +13,7 @@ import { WE_DATA } from './course-we-data.js';
 import { R2_DATA } from './course-r2-data.js';
 import { C2N_DATA } from './course-c2n-data.js';
 import { R7_DATA } from './course-r7-data.js';
+import { R9_DATA } from './course-r9-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -540,6 +541,45 @@ export const COURSES = [
     ],
     landmarks: [
       { model: 'kokugikan', lat: 35.69690, lon: 139.79320, name: '両国国技館', spot: '両国国技館' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  {
+    id: 'fukagawa', playable: true,
+    title: '9号深川線 木場から湾岸へ',
+    sub: '江戸橋JCT → 箱崎JCT → 隅田川 → 福住 → 木場 → 塩浜 → 辰巳JCT → 湾岸線 東行き → 新木場 → 葛西JCT',
+    en: 'ROUTE 9  FUKAGAWA LINE',
+    km: 10.7,
+    note: '隅田川を越えて深川の運河の上を南へ。辰巳JCTから湾岸線に合流したら、正面の大観覧車めがけて超高速ストレート。',
+    data: R9_DATA,
+    sections: [
+      { s: 120, main: '6号向島線', sub: '江戸橋JCT から箱崎へ', en: 'ROUTE 6' },
+      { junction: '箱崎ジャンクション', main: '箱崎JCT', sub: '9号深川線へ', en: 'HAKOZAKI JCT' },
+      { junction: '木場', main: '木場', sub: '深川の運河の上', en: 'KIBA' },
+      { junction: '辰巳ジャンクション', main: '辰巳JCT', sub: '湾岸線 東行きへ', en: 'TATSUMI JCT' },
+      { junction: '新木場', main: '新木場', sub: 'ラストスパート', en: 'SHIN-KIBA' },
+    ],
+    marks: [
+      { s: 120, name: '江戸橋JCT', kind: 'ic' },
+      { junction: '箱崎ジャンクション', name: '箱崎JCT', kind: 'jct', dest: '9 深川線' },
+      { junction: '福住', name: '福住', kind: 'ic' },
+      { junction: '木場', name: '木場', kind: 'ic' },
+      { junction: '塩浜', name: '塩浜', kind: 'ic' },
+      { junction: '辰巳ジャンクション', name: '辰巳JCT', kind: 'jct', dest: 'B 湾岸線' },
+      { junction: '新木場', name: '新木場', kind: 'ic' },
+      { fromEnd: 380, name: '葛西JCT', kind: 'goal', sign: '葛西JCT C2 中央環状線' },
+    ],
+    routeNo: [{ s: 0, no: '6' }, { junction: '箱崎ジャンクション', no: '9' }, { junction: '辰巳ジャンクション', no: 'B' }],
+    parks: [
+      { lat: 35.6800, lon: 139.7920, r: 170, kind: 'water', name: '隅田川' },
+      { lat: 35.6745, lon: 139.8070, r: 260, kind: 'park', name: '木場公園' },
+      { lat: 35.6530, lon: 139.8270, r: 350, kind: 'park', name: '夢の島公園' },
+      { lat: 35.6380, lon: 139.8420, r: 700, kind: 'water', name: '荒川河口' },
+      { lat: 35.6400, lon: 139.8600, r: 450, kind: 'park', name: '葛西臨海公園' },
+      { lat: 35.6460, lon: 139.8060, r: 220, kind: 'park', name: '辰巳の森海浜公園' },
+    ],
+    landmarks: [
+      { model: 'ferriswheel', lat: 35.64250, lon: 139.86140, face: [35.6440, 139.8500], name: '葛西臨海公園 大観覧車', spot: '葛西臨海公園の大観覧車' },
       ...CITY_LANDMARKS,
     ],
   },
