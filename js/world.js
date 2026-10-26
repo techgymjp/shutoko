@@ -628,13 +628,15 @@ export class World {
     }
     // 路面が地面より低い所は擁壁 (掘割)
     const low = (p) => p.y < 2.5;
+    // 海の上の高い橋 (レインボーブリッジなど) は壁を低くして、運転席から海と街が見えるように
+    const wallH = (p) => (p.y > 30 ? 0.45 : 1.05);
     // 両側の壁高欄 (左右)
     g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => {
-      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + 1.05;
+      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p);
       return [[HALF, p.y], [HALF, top - 0.1], [HALF + 0.15, top], [HALF + 0.5, top], [HALF + 0.5, p.y - (low(p) ? 0 : 2.4)]];
     }, { uScale: 4, vScale: 4 }), M.wall));
     g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => {
-      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + 1.05;
+      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p);
       return [[-HALF, p.y], [-HALF, top - 0.1], [-HALF - 0.15, top], [-HALF - 0.5, top], [-HALF - 0.5, p.y - (low(p) ? 0 : 2.4)]];
     }, { uScale: 4, vScale: 4 }), M.wall));
     // 桁 (高架の下面)
@@ -645,10 +647,17 @@ export class World {
     // 対向車線
     g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => [[OPP_OFF - HALF, p.y], [OPP_OFF + HALF, p.y]], { uFixed: [0, 1], vScale: 20 }), M.oppRoad));
     g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => {
-      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + 1.05;
+      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p);
       const o = OPP_OFF - HALF;
       return [[o, p.y], [o, top], [o - 0.5, top], [o - 0.5, p.y - (low(p) ? 0 : 2.4)]];
     }, { uScale: 4, vScale: 4 }), M.wall));
+    // 高い橋の上は低い壁の上に細い手すり
+    const hiA = Math.max(a, this.course.highFrom(a, b)), hiB = this.course.highTo(a, b);
+    if (hiA < hiB) {
+      for (const off of [HALF + 0.3, OPP_OFF - HALF - 0.3]) {
+        g.add(new THREE.Mesh(sweep(c, hiA, hiB, st, (p) => [[off, p.y + 1.15], [off, p.y + 1.3]], { uScale: 4, vScale: 4 }), M.pole));
+      }
+    }
     // 遮音壁 (住宅地の区間)
     const barrierZones = this.barrierZones();
     for (const [za, zb] of barrierZones) {

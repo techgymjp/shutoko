@@ -160,6 +160,16 @@ export class Course {
     return m;
   }
 
+  // a〜b の中で路面が 30m より高い区間 (手すりを付ける)。なければ highFrom >= highTo
+  highFrom(a, b) {
+    for (let s = a; s <= b; s += STEP) if (this.at(s).y > 30) return s;
+    return b + 1;
+  }
+  highTo(a, b) {
+    for (let s = b; s >= a; s -= STEP) if (this.at(s).y > 30) return s;
+    return a - 1;
+  }
+
   inTunnel(s) {
     for (const t of this.tunnels) if (s >= t[0] && s <= t[1]) return t;
     return null;

@@ -7,6 +7,7 @@ import { RAINBOW_DATA } from './course-rainbow-data.js';
 import { C2_DATA } from './course-c2-data.js';
 import { R6_DATA } from './course-r6-data.js';
 import { R1_DATA } from './course-r1-data.js';
+import { RBR_DATA } from './course-rbr-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -105,7 +106,6 @@ export const COURSES = [
     ],
   },
 
-  // ---- 提案ルート (準備中) ----
   {
     id: 'c1-loop', playable: true,
     title: 'C1 都心環状線 一周',
@@ -197,6 +197,48 @@ export const COURSES = [
       ...CITY_LANDMARKS,
     ],
   },
+  {
+    id: 'rainbow-city', playable: true,
+    title: 'レインボーブリッジ 都心行き',
+    sub: '辰巳 → 有明JCT → 台場 → レインボーブリッジ → 芝浦 → 浜崎橋JCT → 東京タワー → 飯倉',
+    en: 'RAINBOW BRIDGE  TO THE CITY',
+    km: 10.2,
+    note: '海の上のレインボーブリッジから、正面に東京タワーと都心の高層ビル。橋の上は壁が低く、海と街が見わたせる。',
+    data: RBR_DATA,
+    sections: [
+      { s: 150, main: '湾岸線 西行き', sub: '辰巳から有明JCTへ', en: 'BAYSHORE ROUTE' },
+      { junction: '有明ジャンクション', main: '有明JCT', sub: '11号台場線へ', en: 'ARIAKE JCT' },
+      { s: 3500, main: 'レインボーブリッジ', sub: '正面に東京タワーと都心', en: 'RAINBOW BRIDGE' },
+      { junction: '浜崎橋JCT', main: '浜崎橋JCT', sub: '都心環状線 外回りへ', en: 'HAMAZAKIBASHI JCT' },
+      { junction: '一ノ橋JCT', main: '一ノ橋JCT', sub: 'ラストスパート', en: 'ICHINOHASHI JCT' },
+    ],
+    marks: [
+      { s: 150, name: '辰巳', kind: 'ic' },
+      { junction: '有明ジャンクション', name: '有明JCT', kind: 'jct', dest: '11 台場線' },
+      { at: [35.6349, 139.7687], name: '台場', kind: 'ic' },
+      { junction: '浜崎橋JCT', name: '浜崎橋JCT', kind: 'jct', dest: 'C1 都心環状線' },
+      { junction: '芝公園出口', name: '芝公園', kind: 'ic' },
+      { junction: '一ノ橋JCT', name: '一ノ橋JCT', kind: 'jct', dest: '2 目黒線' },
+      { fromEnd: 380, name: '飯倉', kind: 'goal', sign: '谷町JCT 霞が関' },
+    ],
+    routeNo: [{ s: 0, no: 'B' }, { junction: '有明ジャンクション', no: '11' }, { junction: '浜崎橋JCT', no: 'C1' }],
+    parks: [
+      { lat: 35.6360, lon: 139.7630, r: 700, kind: 'water', name: '東京港 (芝浦〜台場)' },
+      { lat: 35.6250, lon: 139.7600, r: 900, kind: 'water', name: '東京港' },
+      { lat: 35.6420, lon: 139.7700, r: 450, kind: 'water', name: '東京港 (日の出)' },
+      { lat: 35.6380, lon: 139.7830, r: 350, kind: 'water', name: '東京港 (有明)' },
+      { lat: 35.6310, lon: 139.7720, r: 220, kind: 'park', name: 'お台場海浜公園' },
+      { lat: 35.6555, lon: 139.7485, r: 260, kind: 'park', name: '芝公園' },
+      { lat: 35.6590, lon: 139.7630, r: 330, kind: 'park', name: '浜離宮恩賜庭園' },
+    ],
+    landmarks: [
+      { model: 'rbtower', lat: 35.63709, lon: 139.76172, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔' },
+      { model: 'rbtower', lat: 35.63575, lon: 139.76602, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔2' },
+      { model: 'odaibasphere', lat: 35.62700, lon: 139.77460, name: 'お台場の球体展望室', spot: 'お台場の球体展望室' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  // ---- 提案ルート (準備中) ----
   {
     id: 'yamate-tunnel', playable: true,
     title: '山手トンネル 地下バトル',
