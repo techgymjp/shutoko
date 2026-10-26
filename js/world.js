@@ -424,7 +424,7 @@ export class World {
     for (const p of c.parks) {
       const water = p.kind === 'water';
       const m = new THREE.Mesh(new THREE.CircleGeometry(p.r, 40), new THREE.MeshLambertMaterial({
-        color: water ? (T.night ? 0x10202a : 0x3d6676) : (T.night ? 0x1d2a1c : 0x55783e),
+        color: water ? (T.night ? 0x10202a : 0x3d6676) : p.kind === 'grass' ? (T.night ? 0x1f2a1a : 0x7c9a52) : (T.night ? 0x1d2a1c : 0x55783e),
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
         depthWrite: false, // 掘割やトンネルの入口の道路を隠さない
       }));
@@ -777,14 +777,17 @@ export class World {
     // 路面が地面より低い所は擁壁 (掘割)
     const low = (p) => p.y < 2.5;
     // 海の上の高い橋 (レインボーブリッジなど) は壁を低くして、運転席から海と街が見えるように
-    const wallH = (p) => (p.y > 30 ? 0.45 : 1.05);
+    // コースで指定した川沿いの区間 (lowWalls) も同じく低い壁
+    const wallH = (p, s) => (p.y > 30 || c.lowWallAt(s) ? 0.45 : 1.05);
+    // 川沿いの区間の外側は低い縁石と見通せる手すりだけ (運転席の低い目線からも川が見えるように)
+    const outerH = (p, s) => (c.lowWallAt(s) ? 0.25 : wallH(p, s));
     // 両側の壁高欄 (左右)
-    g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => {
-      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p);
+    g.add(new THREE.Mesh(sweep(c, a, b, st, (p, s) => {
+      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + outerH(p, s);
       return [[HALF, p.y], [HALF, top - 0.1], [HALF + 0.15, top], [HALF + 0.5, top], [HALF + 0.5, p.y - (low(p) ? 0 : 2.4)]];
     }, { uScale: 4, vScale: 4 }), M.wall));
-    g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => {
-      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p);
+    g.add(new THREE.Mesh(sweep(c, a, b, st, (p, s) => {
+      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p, s);
       return [[-HALF, p.y], [-HALF, top - 0.1], [-HALF - 0.15, top], [-HALF - 0.5, top], [-HALF - 0.5, p.y - (low(p) ? 0 : 2.4)]];
     }, { uScale: 4, vScale: 4 }), M.wall));
     // 桁 (高架の下面)
@@ -794,8 +797,8 @@ export class World {
     }), M.girder));
     // 対向車線
     g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => [[OPP_OFF - HALF, p.y], [OPP_OFF + HALF, p.y]], { uFixed: [0, 1], vScale: 20 }), M.oppRoad));
-    g.add(new THREE.Mesh(sweep(c, a, b, st, (p) => {
-      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + wallH(p);
+    g.add(new THREE.Mesh(sweep(c, a, b, st, (p, s) => {
+      const top = low(p) ? Math.max(p.y + 1.0, 1.0) : p.y + outerH(p, s);
       const o = OPP_OFF - HALF;
       return [[o, p.y], [o, top], [o - 0.5, top], [o - 0.5, p.y - (low(p) ? 0 : 2.4)]];
     }, { uScale: 4, vScale: 4 }), M.wall));
@@ -806,6 +809,23 @@ export class World {
         g.add(new THREE.Mesh(sweep(c, hiA, hiB, st, (p) => [[off, p.y + 1.15], [off, p.y + 1.3]], { uScale: 4, vScale: 4 }), M.pole));
       }
       this.buildLowerDeck(g, hiA, hiB);
+    }
+    // 川沿いの低い壁の区間も手すりを付ける
+    for (const [la, lb] of c.lowWalls) {
+      const ra = Math.max(a, la), rb = Math.min(b, lb);
+      if (rb - ra < 1) continue;
+      const posts = new Geo();
+      const q = {};
+      for (const off of [HALF + 0.3, OPP_OFF - HALF - 0.3]) {
+        for (const y of [0.65, 1.15]) {
+          g.add(new THREE.Mesh(sweep(c, ra, rb, st, (p) => [[off, p.y + y], [off, p.y + y + 0.15]], { uScale: 4, vScale: 4 }), M.pole));
+        }
+        for (let s = Math.ceil(ra / 4) * 4; s < rb; s += 4) {
+          c.at(s, off, q);
+          posts.box(q.x, q.y + 0.2, q.z, 0.12, 1.1, 0.12, yawOf(q.a));
+        }
+      }
+      if (posts.n) g.add(posts.mesh(M.pole));
     }
     // 遮音壁 (住宅地の区間)
     const barrierZones = this.barrierZones();

@@ -60,6 +60,8 @@ export class Course {
           : this.nearest(this.project(x.at[0], x.at[1]));
     this.sections = (def.sections || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     this.marks = (def.marks || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
+    // 壁を低くして景色を見せる区間 (川沿いなど): [[始まり, 終わり], ...]
+    this.lowWalls = (def.lowWalls || []).map(([a, b]) => [posOf(a), posOf(b)]);
     this.routeNo = (def.routeNo || []).map((x) => ({ ...x, s: posOf(x) })).sort((a, b) => a.s - b.s);
     // 道路わきの広告看板: { junction, before: その何m手前 }
     this.ads = (def.ads || []).map((x) => ({ ...x, s: posOf(x) - (x.before || 0) }));
@@ -168,6 +170,11 @@ export class Course {
   highTo(a, b) {
     for (let s = b; s >= a; s -= STEP) if (this.at(s).y > 30) return s;
     return a - 1;
+  }
+
+  lowWallAt(s) {
+    for (const [a, b] of this.lowWalls) if (s >= a && s <= b) return true;
+    return false;
   }
 
   inTunnel(s) {
