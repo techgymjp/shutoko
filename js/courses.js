@@ -14,6 +14,7 @@ import { R2_DATA } from './course-r2-data.js';
 import { C2N_DATA } from './course-c2n-data.js';
 import { R7_DATA } from './course-r7-data.js';
 import { R9_DATA } from './course-r9-data.js';
+import { C2E_DATA } from './course-c2e-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -582,5 +583,44 @@ export const COURSES = [
       { model: 'ferriswheel', lat: 35.64250, lon: 139.86140, face: [35.6440, 139.8500], name: '葛西臨海公園 大観覧車', spot: '葛西臨海公園の大観覧車' },
       ...CITY_LANDMARKS,
     ],
+  },
+  {
+    id: 'kasai-horikiri', playable: true,
+    title: 'C2 荒川・中川 土手ストレート',
+    sub: '葛西JCT → 清新町 → 船堀橋 → 小松川JCT → 平井大橋 → 四つ木 → 堀切JCT',
+    en: 'C2  ARAKAWA LEVEE',
+    km: 12.1,
+    note: '荒川と中川にはさまれた土手の上を北へ一直線。左に広い荒川、右に中川。左手にはスカイツリー。',
+    data: C2E_DATA,
+    sections: [
+      { s: 150, main: 'C2 中央環状線', sub: '葛西JCT から北へ', en: 'C2 CENTRAL CIRCULAR' },
+      { junction: '船堀橋', main: '船堀橋', sub: '荒川と中川のあいだ', en: 'FUNABORIBASHI' },
+      { at: [35.7018, 139.8593], main: '小松川JCT', sub: '7号小松川線と接続', en: 'KOMATSUGAWA JCT' },
+      { at: [35.7176, 139.8474], main: '平井大橋', sub: '左手にスカイツリー', en: 'HIRAI-OHASHI' },
+      { junction: '四つ木', main: '四つ木', sub: 'ラストスパート', en: 'YOTSUGI' },
+    ],
+    marks: [
+      { s: 150, name: '葛西JCT', kind: 'ic' },
+      { at: [35.6693, 139.8496], name: '清新町', kind: 'ic' },
+      { junction: '船堀橋', name: '船堀橋', kind: 'ic' },
+      { at: [35.7018, 139.8593], name: '小松川JCT', kind: 'jct', dest: '7 小松川線' },
+      { at: [35.7176, 139.8474], name: '平井大橋', kind: 'ic' },
+      { junction: '四つ木', name: '四つ木', kind: 'ic' },
+      { fromEnd: 380, name: '堀切JCT', kind: 'goal', sign: '堀切JCT 6号向島線' },
+    ],
+    routeNo: [{ s: 0, no: 'C2' }],
+    parks: [
+      { lat: 35.6560, lon: 139.8470, r: 260, kind: 'water', name: '荒川 (河口)' },
+      { lat: 35.6700, lon: 139.8450, r: 250, kind: 'water', name: '荒川 (清新町)' },
+      { lat: 35.6850, lon: 139.8500, r: 230, kind: 'water', name: '荒川 (船堀橋)' },
+      { lat: 35.7000, lon: 139.8545, r: 220, kind: 'water', name: '荒川 (小松川)' },
+      { lat: 35.7140, lon: 139.8460, r: 230, kind: 'water', name: '荒川 (平井)' },
+      { lat: 35.7260, lon: 139.8340, r: 230, kind: 'water', name: '荒川 (四つ木)' },
+      { lat: 35.7380, lon: 139.8230, r: 220, kind: 'water', name: '荒川 (堀切)' },
+      { lat: 35.6800, lon: 139.8560, r: 80, kind: 'water', name: '中川' },
+      { lat: 35.6950, lon: 139.8630, r: 80, kind: 'water', name: '中川 (小松川)' },
+      { lat: 35.6930, lon: 139.8520, r: 220, kind: 'park', name: '大島小松川公園' },
+    ],
+    landmarks: [...CITY_LANDMARKS],
   },
 ];
