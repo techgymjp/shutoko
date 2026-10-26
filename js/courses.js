@@ -18,11 +18,33 @@ import { C2E_DATA } from './course-c2e-data.js';
 import { R3U_DATA } from './course-r3u-data.js';
 import { ODB_DATA } from './course-odaiba-data.js';
 
+// 名所のお知らせだけの目印 (近くを通ると「左手に〜」と出る)。range: これより遠いと出さない (m)
+const spot = (lat, lon, text, range) => ({ lat, lon, name: text, spot: text, ...(range ? { spotRange: range } : {}) });
+const NIHONBASHI = spot(35.68400, 139.77450, '日本橋（首都高の下の石橋）');
+const SKYTREE_SPOT = spot(35.71010, 139.81070, '東京スカイツリー', 5000);
+const SUNSHINE_SPOT = spot(35.72940, 139.71826, 'サンシャイン60', 3000);
+const SHIBA = spot(35.65740, 139.74800, '増上寺と芝公園');
+const HAMARIKYU = spot(35.65970, 139.76300, '浜離宮恩賜庭園', 2000);
+const SHIODOME = spot(35.66444, 139.75983, '汐留のビル群（日本テレビタワー）', 2000);
+const SHIBAURA = spot(35.64300, 139.75600, '芝浦ふ頭');
+const ODAIBA_BEACH = spot(35.63100, 139.77200, 'お台場海浜公園');
+const ARIAKE_ARENA = spot(35.63800, 139.79200, '有明アリーナ');
+const TOYOSU = spot(35.64500, 139.78400, '豊洲市場', 1800);
+const AQUATICS = spot(35.64560, 139.81460, '東京アクアティクスセンター');
+const YUMENOSHIMA = spot(35.65300, 139.82700, '夢の島公園');
+const GATEBRIDGE = spot(35.63450, 139.82300, '東京ゲートブリッジ', 3000);
+const KIYOSU = spot(35.68200, 139.79300, '清洲橋と隅田川');
+const EDOHAKU = spot(35.69659, 139.79626, '江戸東京博物館');
+const BUDOKAN = spot(35.69330, 139.74990, '日本武道館');
+const KAGAKU = spot(35.69174, 139.75305, '科学技術館');
+const ARK = spot(35.66720, 139.73980, 'アークヒルズ');
+const HORIKIRI = spot(35.74800, 139.82740, '堀切菖蒲園');
+
 // レインボーブリッジとお台場 (レインボーブリッジを渡るコースで共通)
 const ODAIBA_LANDMARKS = [
   { model: 'rbtower', lat: 35.63709, lon: 139.76172, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔' },
   { model: 'rbtower', lat: 35.63575, lon: 139.76602, off: -5, turn: Math.PI / 2, name: 'レインボーブリッジ 主塔2' },
-  { model: 'odaibasphere', lat: 35.62700, lon: 139.77460, name: 'フジテレビ本社ビル', spot: 'フジテレビ本社ビル（球体展望室）' },
+  { model: 'odaibasphere', lat: 35.62700, lon: 139.77460, name: 'フジテレビ本社ビル', spot: 'フジテレビ本社ビル（球体展望室）', spotRange: 2000 },
   { model: 'liberty', lat: 35.62820, lon: 139.77170, face: [35.6370, 139.7620], name: '自由の女神像', spot: 'お台場の自由の女神像' },
 ];
 // ゆりかもめの線路 [緯度, 経度, 高さm, 橋の下の段か]: 芝浦ふ頭 → レインボーブリッジの下の段 → お台場海浜公園 → 台場
@@ -198,6 +220,7 @@ export const COURSES = [
       { lat: 35.6870, lon: 139.7600, r: 100, kind: 'water', name: '日比谷濠' },
     ],
     landmarks: [
+      SHIBA, HAMARIKYU, SHIODOME, spot(35.67190, 139.76500, '銀座の街並み'), spot(35.66950, 139.76780, '歌舞伎座'), spot(35.67660, 139.76370, '東京国際フォーラム'), spot(35.68187, 139.76773, '東京駅と丸の内'), NIHONBASHI, spot(35.69180, 139.75760, 'パレスサイドビル'), KAGAKU, BUDOKAN, spot(35.68700, 139.75100, '北の丸公園と皇居'), spot(35.68000, 139.74850, '桜田濠'), spot(35.68260, 139.74320, '国立劇場'), spot(35.67980, 139.74340, '最高裁判所'), spot(35.67590, 139.74480, '国会議事堂'), ARK,
       ...CITY_LANDMARKS,
     ],
   },
@@ -238,6 +261,7 @@ export const COURSES = [
       { lat: 35.6180, lon: 139.7880, r: 350, kind: 'park', name: 'シンボルプロムナード公園' },
     ],
     landmarks: [
+      SHIBAURA, ODAIBA_BEACH, spot(35.62023, 139.77217, '船の科学館'), spot(35.62133, 139.77314, '東京国際クルーズターミナル'), spot(35.62990, 139.79430, '東京ビッグサイト', 2000), spot(35.59330, 139.74060, '大井競馬場', 1600),
       ...ODAIBA_LANDMARKS,
       ...CITY_LANDMARKS,
     ],
@@ -278,6 +302,7 @@ export const COURSES = [
       { lat: 35.6590, lon: 139.7630, r: 330, kind: 'park', name: '浜離宮恩賜庭園' },
     ],
     landmarks: [
+      ARIAKE_ARENA, spot(35.62990, 139.79430, '東京ビッグサイト', 2000), TOYOSU, ODAIBA_BEACH, SHIBAURA, HAMARIKYU, SHIODOME, SHIBA, spot(35.66040, 139.72930, '六本木ヒルズ', 1500),
       ...ODAIBA_LANDMARKS,
       ...CITY_LANDMARKS,
     ],
@@ -312,7 +337,10 @@ export const COURSES = [
       { lat: 35.6720, lon: 139.6955, r: 520, kind: 'park', name: '代々木公園' },
       { lat: 35.6760, lon: 139.6990, r: 420, kind: 'park', name: '明治神宮' },
     ],
-    landmarks: [...CITY_LANDMARKS],
+    landmarks: [
+      spot(35.59500, 139.75700, '大井ふ頭中央海浜公園', 1600), SUNSHINE_SPOT,
+      ...CITY_LANDMARKS,
+    ],
   },
   {
     id: 'skytree', playable: true,
@@ -349,6 +377,7 @@ export const COURSES = [
       { lat: 35.7140, lon: 139.8040, r: 150, kind: 'park', name: '隅田公園' },
     ],
     landmarks: [
+      KIYOSU, EDOHAKU, spot(35.71000, 139.79830, 'アサヒビール本社の金のオブジェ'), spot(35.71110, 139.79640, '浅草の雷門'), spot(35.71480, 139.79670, '浅草寺'), spot(35.71300, 139.80200, '隅田公園'), SKYTREE_SPOT,
       { model: 'kokugikan', lat: 35.69690, lon: 139.79320, name: '両国国技館', spot: '両国国技館' },
       ...CITY_LANDMARKS,
     ],
@@ -385,7 +414,10 @@ export const COURSES = [
       { lat: 35.5550, lon: 139.7650, r: 600, kind: 'water', name: '海老取川・羽田沖' },
       { lat: 35.5870, lon: 139.7470, r: 220, kind: 'park', name: '平和島公園' },
     ],
-    landmarks: [...CITY_LANDMARKS],
+    landmarks: [
+      spot(35.54940, 139.77980, '羽田空港', 3500), spot(35.58680, 139.74160, 'ボートレース平和島'), spot(35.59330, 139.74060, '大井競馬場', 1600), spot(35.62150, 139.75030, '天王洲アイル'), spot(35.63660, 139.76300, 'レインボーブリッジ', 2500), SHIBAURA, HAMARIKYU,
+      ...CITY_LANDMARKS,
+    ],
   },
   {
     id: 'ikebukuro', playable: true,
@@ -425,6 +457,7 @@ export const COURSES = [
       { lat: 35.7225, lon: 139.7205, r: 200, kind: 'park', name: '雑司ヶ谷霊園' },
     ],
     landmarks: [
+      BUDOKAN, spot(35.70558, 139.75189, '東京ドーム'), spot(35.70550, 139.74950, '小石川後楽園'), spot(35.71800, 139.72720, '護国寺'), spot(35.72170, 139.72050, '雑司ヶ谷霊園'), spot(35.78800, 139.66000, '高島平団地', 1500),
       { lat: 35.72940, lon: 139.71826, name: 'サンシャイン60', spot: 'サンシャイン60' },
       ...CITY_LANDMARKS,
     ],
@@ -463,6 +496,7 @@ export const COURSES = [
       { lat: 35.6460, lon: 139.8060, r: 220, kind: 'park', name: '辰巳の森海浜公園' },
     ],
     landmarks: [
+      spot(35.62023, 139.77217, '船の科学館'), ARIAKE_ARENA, TOYOSU, AQUATICS, YUMENOSHIMA, GATEBRIDGE, spot(35.64000, 139.84500, '荒川の河口'),
       { model: 'bigsight', lat: 35.62990, lon: 139.79430, face: [35.6355, 139.7921], name: '東京ビッグサイト', spot: '東京ビッグサイト' },
       { model: 'ferriswheel', lat: 35.64250, lon: 139.86140, face: [35.6440, 139.8500], name: '葛西臨海公園 大観覧車', spot: '葛西臨海公園の大観覧車' },
       ...CITY_LANDMARKS,
@@ -499,6 +533,7 @@ export const COURSES = [
       { lat: 35.6515, lon: 139.7245, r: 160, kind: 'park', name: '有栖川宮記念公園' },
     ],
     landmarks: [
+      ARK, SHIBA, spot(35.65150, 139.72450, '有栖川宮記念公園'), spot(35.63700, 139.72000, '自然教育園'), spot(35.63680, 139.71924, '東京都庭園美術館'),
       { lat: 35.66040, lon: 139.72930, name: '六本木ヒルズ', spot: '六本木ヒルズ' },
       { lat: 35.64200, lon: 139.71400, name: '恵比寿ガーデンプレイス', spot: '恵比寿ガーデンプレイス' },
       ...CITY_LANDMARKS,
@@ -780,6 +815,7 @@ export const COURSES = [
       { lat: 35.75271, lon: 139.78880, r: 55, kind: 'water', name: '隅田川' },
     ],
     landmarks: [
+      spot(35.75200, 139.73850, '飛鳥山公園'), spot(35.76000, 139.79000, '荒川の河川敷'), HORIKIRI, SKYTREE_SPOT,
       { lat: 35.75874, lon: 139.81763, name: '東京拘置所', spot: '小菅の東京拘置所' },
       ...CITY_LANDMARKS,
     ],
@@ -815,6 +851,7 @@ export const COURSES = [
       { lat: 35.6975, lon: 139.8620, r: 120, kind: 'water', name: '中川' },
     ],
     landmarks: [
+      spot(35.69000, 139.79000, '隅田川'), EDOHAKU, SKYTREE_SPOT, spot(35.69750, 139.81500, '錦糸公園'), spot(35.70300, 139.82050, '亀戸天神', 1500), spot(35.69400, 139.85200, '大島小松川公園'), spot(35.69600, 139.85700, '荒川と旧中川'),
       { model: 'kokugikan', lat: 35.69690, lon: 139.79320, name: '両国国技館', spot: '両国国技館' },
       ...CITY_LANDMARKS,
     ],
@@ -854,6 +891,7 @@ export const COURSES = [
       { lat: 35.6460, lon: 139.8060, r: 220, kind: 'park', name: '辰巳の森海浜公園' },
     ],
     landmarks: [
+      KIYOSU, spot(35.67160, 139.79970, '富岡八幡宮'), spot(35.67973, 139.80828, '東京都現代美術館', 1500), spot(35.67450, 139.80700, '木場公園'), AQUATICS, YUMENOSHIMA, GATEBRIDGE,
       { model: 'ferriswheel', lat: 35.64250, lon: 139.86140, face: [35.6440, 139.8500], name: '葛西臨海公園 大観覧車', spot: '葛西臨海公園の大観覧車' },
       ...CITY_LANDMARKS,
     ],
@@ -1235,7 +1273,10 @@ export const COURSES = [
       { lat: 35.65535, lon: 139.84719, r: 45, kind: 'water', name: '中川' },
       { lat: 35.65486, lon: 139.84685, r: 45, kind: 'water', name: '中川' },
     ],
-    landmarks: [...CITY_LANDMARKS],
+    landmarks: [
+      { model: 'ferriswheel', lat: 35.64250, lon: 139.86140, face: [35.6440, 139.8500], name: '葛西臨海公園 大観覧車' }, spot(35.70000, 139.85600, '荒川と中川にはさまれた土手'), spot(35.69400, 139.85200, '大島小松川公園'), SKYTREE_SPOT, HORIKIRI,
+      ...CITY_LANDMARKS,
+    ],
   },
   {
     id: 'shibuya-up', playable: true,
@@ -1274,6 +1315,7 @@ export const COURSES = [
       { lat: 35.6750, lon: 139.7570, r: 260, kind: 'park', name: '日比谷公園' },
     ],
     landmarks: [
+      spot(35.65630, 139.69930, 'セルリアンタワー'), spot(35.65800, 139.70220, '渋谷スクランブルスクエア'), spot(35.65926, 139.70389, '渋谷ヒカリエ'), spot(35.66550, 139.72100, '青山霊園'), spot(35.66530, 139.72630, '国立新美術館'), ARK,
       { model: 'komazawa', lat: 35.62550, lon: 139.66200, name: '駒沢オリンピック公園 記念塔' },
       { crown: 0xff7a1a, lat: 35.64360, lon: 139.66960, r: 90, name: 'キャロットタワー', spot: 'キャロットタワー' },
       { model: 'shibuya109', lat: 35.65950, lon: 139.69870, name: 'SHIBUYA109', spot: 'SHIBUYA109' },
@@ -1325,6 +1367,7 @@ export const COURSES = [
       { lat: 35.6800, lon: 139.7920, r: 170, kind: 'water', name: '隅田川' },
     ],
     landmarks: [
+      SHIBAURA, ODAIBA_BEACH, ARIAKE_ARENA, TOYOSU, AQUATICS, spot(35.67160, 139.79970, '富岡八幡宮'), spot(35.67450, 139.80700, '木場公園'), KIYOSU, NIHONBASHI,
       ...ODAIBA_LANDMARKS,
       { model: 'bigsight', lat: 35.62990, lon: 139.79430, face: [35.6355, 139.7921], name: '東京ビッグサイト', spot: '東京ビッグサイト' },
       ...CITY_LANDMARKS,

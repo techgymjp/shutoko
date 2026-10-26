@@ -788,6 +788,16 @@ function updateAI(dt) {
       car.laneT = Math.random() < 0.5 ? LANES[0] : LANES[1];
       car.laneTimer = 5 + Math.random() * 9;
     }
+    // 道をゆずる: 自分の前をふさいでいた車は、少しペースを落として道路の端へ寄る
+    car.yieldT = Math.max(0, (car.yieldT || 0) - dt);
+    if (car.yieldT > 0) {
+      vt = Math.min(vt, P.v * 0.93);
+      car.laneT = car.x > 0 ? EDGE : -EDGE;
+    } else if (car.easeT > 0) {
+      // 横一列にならないよう、並走している 2 台の遅いほうが少し下がる
+      car.easeT -= dt;
+      vt *= 0.97;
+    }
     let a;
     const sp = car.v / VMAX;
     if (car.finished) vt = car.s > c.length - 120 ? 0 : 30;
@@ -807,6 +817,42 @@ function updateAI(dt) {
     }
     spinStep(car, dt);
     car.s = Math.min(car.s + car.v * dt, c.length - 2);
+  }
+}
+
+// 前の車が横一列に並んで自分の行き場がない状態 (壁) が続いたら、1 台に道をゆずらせる。
+// 相手どうしでも、2 台がぴったり並んだまま走り続けないよう遅いほうを少し下げる
+const WALL_T = 4;
+function updateWall(dt) {
+  const P = G.player;
+  G.wallCd = Math.max(0, (G.wallCd || 0) - dt);
+  if (G.mode !== 'race' || P.finished) { G.wallT = 0; return; }
+  const front = G.racers.filter((r) => !r.player && !r.finished && r.s - P.s > 2 && r.s - P.s < 35);
+  // 自分が通れる横位置があるか (前の車それぞれから車1台ぶん離れた所)
+  let walled = front.length >= 2;
+  if (walled) {
+    for (let x = -EDGE; x <= EDGE; x += 0.1) {
+      if (front.every((r) => Math.abs(r.x - x) >= CAR_W)) { walled = false; break; }
+    }
+  }
+  G.wallT = walled ? (G.wallT || 0) + dt : Math.max(0, (G.wallT || 0) - dt * 2);
+  if (G.wallT > WALL_T && G.wallCd <= 0) {
+    // 自分にいちばん近い横位置の車 (どけば真ん中があく) をゆずらせる
+    const y = front.reduce((a, b) => (Math.abs(a.x - P.x) < Math.abs(b.x - P.x) ? a : b));
+    y.yieldT = 3.5;
+    G.wallT = 0;
+    G.wallCd = 6;
+  }
+  // 相手どうしの並走
+  for (const a of G.racers) {
+    if (a.player || a.finished) continue;
+    let pair = null;
+    for (const b of G.racers) {
+      if (b === a || b.player || b.finished) continue;
+      if (Math.abs(b.s - a.s) < 5 && Math.abs(b.x - a.x) < 3) { pair = b; break; }
+    }
+    a.abreastT = pair ? (a.abreastT || 0) + dt : 0;
+    if (pair && a.abreastT > 4 && a.skill <= pair.skill) { a.easeT = 2; a.abreastT = 0; }
   }
 }
 
@@ -1304,6 +1350,7 @@ function frame(now, noRender) {
   recordPassing();
   updateRanks();
   updateAttack(dt);
+  updateWall(dt);
   if (G.mode === 'race') checkFinish();
   const P = G.player;
   // トンネルの暗さ
