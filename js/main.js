@@ -1231,15 +1231,15 @@ function updateHUD(dt) {
     if (s == null || P.s < s - 700 || P.s > s) continue;
     G.spots.add(L.name);
     const q = G.course.at(P.s);
-    if (Math.hypot(L.x - q.x, L.z - q.z) > 1200) continue;
-    G.annQ.push({ L, s, t: 2.2 });
+    if (Math.hypot(L.x - q.x, L.z - q.z) > (L.spotRange || 1200)) continue;
+    G.annQ.push({ L, s, t: 2.0 });
   }
   // お知らせは重ならないよう順番に出す。名所は通り過ぎてしまったら出さない
   G.annT -= dt;
   if (G.annT <= 0) {
     const el = $('announce');
     let a = G.annQ.shift();
-    while (a && a.L && P.s > a.s + 450) a = G.annQ.shift();
+    while (a && a.L && P.s > a.s + 700) a = G.annQ.shift();
     if (a) {
       let text = a.text;
       if (a.L) {

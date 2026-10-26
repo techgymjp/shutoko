@@ -39,7 +39,7 @@ const CITY_LANDMARKS = [
   // ビル・屋上の鉄塔の看板・アドバルーン。face: 看板を向ける方向
   { model: 'techgym', lat: 35.68022, lon: 139.74014, face: [35.68010, 139.73300], name: 'テックジム', spot: 'テックジム東京本校（永田町4番出口）' },
   { model: 'diet', lat: 35.67590, lon: 139.74480, name: '国会議事堂' },
-  { model: 'tokyotower', lat: 35.65860, lon: 139.74540, name: '東京タワー', spot: '東京タワー' },
+  { model: 'tokyotower', lat: 35.65860, lon: 139.74540, name: '東京タワー', spot: '東京タワー', spotRange: 2500 },
   { model: 'skytree', lat: 35.71010, lon: 139.81070, name: '東京スカイツリー', far: true },
   { model: 'fuji', lat: 35.36060, lon: 138.72740, name: '富士山', far: true },
 ];
@@ -139,7 +139,7 @@ export const COURSES = [
       { lat: 35.67954, lon: 139.73707, name: '東京ガーデンテラス紀尾井町', spot: '東京ガーデンテラス紀尾井町' },
       { lat: 35.68260, lon: 139.74320, name: '国立劇場', spot: '国立劇場' },
       { lat: 35.67980, lon: 139.74340, name: '最高裁判所', spot: '最高裁判所' },
-      { lat: 35.68520, lon: 139.75280, name: '皇居', spot: '皇居と桜田濠' },
+      { lat: 35.68000, lon: 139.74850, name: '皇居', spot: '皇居と桜田濠' },
       { lat: 35.67590, lon: 139.74480, name: '国会議事堂 (お知らせ)', spot: '国会議事堂' },
       { lat: 35.66720, lon: 139.73980, name: 'アークヒルズ', spot: 'アークヒルズ' },
       { lat: 35.66530, lon: 139.72630, name: '国立新美術館', spot: '国立新美術館' },
