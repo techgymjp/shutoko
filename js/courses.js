@@ -12,6 +12,7 @@ import { R5_DATA } from './course-r5-data.js';
 import { WE_DATA } from './course-we-data.js';
 import { R2_DATA } from './course-r2-data.js';
 import { C2N_DATA } from './course-c2n-data.js';
+import { R7_DATA } from './course-r7-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -504,6 +505,41 @@ export const COURSES = [
     ],
     landmarks: [
       { lat: 35.75874, lon: 139.81763, name: '東京拘置所', spot: '小菅の東京拘置所' },
+      ...CITY_LANDMARKS,
+    ],
+  },
+  {
+    id: 'komatsugawa', playable: true,
+    title: '7号小松川線 竪川ストレート',
+    sub: '江戸橋JCT → 箱崎JCT → 両国JCT → 錦糸町 → 竪川の上 → 荒川・中川 → 小松川 → 一之江',
+    en: 'ROUTE 7  KOMATSUGAWA LINE',
+    km: 10.1,
+    note: '隅田川を渡って両国から東へ。竪川の真上をまっすぐ走り、左手にスカイツリー。荒川を越えたら一之江までラストスパート。',
+    data: R7_DATA,
+    sections: [
+      { s: 120, main: '6号向島線', sub: '江戸橋JCT から箱崎へ', en: 'ROUTE 6' },
+      { junction: '両国', main: '両国JCT', sub: '7号小松川線へ', en: 'RYOGOKU JCT' },
+      { junction: '錦糸町', main: '錦糸町', sub: '竪川の上を東へ', en: 'KINSHICHO' },
+      { at: [35.6950, 139.8560], main: '荒川・中川', sub: 'ラストスパート', en: 'ARAKAWA' },
+    ],
+    marks: [
+      { s: 120, name: '江戸橋JCT', kind: 'ic' },
+      { junction: '箱崎ジャンクション', name: '箱崎JCT', kind: 'jct', dest: '9 深川線' },
+      { junction: '両国', name: '両国JCT', kind: 'jct', dest: '7 小松川線' },
+      { junction: '錦糸町', name: '錦糸町', kind: 'ic' },
+      { junction: '小松川出口', name: '小松川', kind: 'ic' },
+      { fromEnd: 300, name: '一之江', kind: 'goal', sign: '一之江 京葉道路' },
+    ],
+    routeNo: [{ s: 0, no: '6' }, { junction: '両国', no: '7' }],
+    parks: [
+      { lat: 35.6870, lon: 139.7900, r: 160, kind: 'water', name: '隅田川' },
+      { lat: 35.6960, lon: 139.8160, r: 150, kind: 'park', name: '錦糸公園' },
+      { lat: 35.6940, lon: 139.8520, r: 220, kind: 'park', name: '大島小松川公園' },
+      { lat: 35.6960, lon: 139.8570, r: 200, kind: 'water', name: '荒川' },
+      { lat: 35.6975, lon: 139.8620, r: 120, kind: 'water', name: '中川' },
+    ],
+    landmarks: [
+      { model: 'kokugikan', lat: 35.69690, lon: 139.79320, name: '両国国技館', spot: '両国国技館' },
       ...CITY_LANDMARKS,
     ],
   },
