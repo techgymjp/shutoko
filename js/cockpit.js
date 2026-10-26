@@ -115,12 +115,7 @@ export class Cockpit {
     const fw = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.04, 0.45), accent);
     fw.position.set(0, -0.88, -3.1);
     g.add(fw);
-    // ヘイロー: 頭上の輪 (中央の柱は視界の邪魔なので付けない)
-    const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.02, 8, 24, Math.PI), carbon);
-    hoop.rotation.x = -Math.PI / 2;
-    hoop.position.set(0, 0.24, -0.01);
-    hoop.scale.set(1, 1.3, 1);
-    g.add(hoop);
+    // ヘイロー (頭上の輪) は景色が見えにくくなるので付けない
     // ステアリング
     const wheel = new THREE.Group();
     const grip = new THREE.MeshPhongMaterial({ color: 0x222326, shininess: 10 });
