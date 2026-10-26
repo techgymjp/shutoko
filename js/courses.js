@@ -15,6 +15,7 @@ import { C2N_DATA } from './course-c2n-data.js';
 import { R7_DATA } from './course-r7-data.js';
 import { R9_DATA } from './course-r9-data.js';
 import { C2E_DATA } from './course-c2e-data.js';
+import { R3U_DATA } from './course-r3u-data.js';
 
 // どのコースにも出る街の目印 (コースから見える所にあれば表示される)。
 // spot: 近づくとお知らせ (左手・右手・正面は自動で付ける)
@@ -622,5 +623,49 @@ export const COURSES = [
       { lat: 35.6930, lon: 139.8520, r: 220, kind: 'park', name: '大島小松川公園' },
     ],
     landmarks: [...CITY_LANDMARKS],
+  },
+  {
+    id: 'shibuya-up', playable: true,
+    title: '3号渋谷線 上り 都心へ',
+    sub: '用賀 → 三軒茶屋 → 大橋JCT → 渋谷 → 高樹町 → 六本木 → 谷町JCT → 霞が関',
+    en: 'ROUTE 3  TO THE CITY',
+    km: 12.5,
+    note: '国道246号の上を都心へ。渋谷のビルの谷間を抜け、六本木の先で東京タワーが正面に。霞が関のトンネルへ飛び込んでゴール。',
+    data: R3U_DATA,
+    sections: [
+      { s: 150, main: '3号渋谷線 上り', sub: '用賀から都心へ', en: 'ROUTE 3  SHIBUYA LINE' },
+      { junction: '三軒茶屋', main: '三軒茶屋', sub: 'キャロットタワー', en: 'SANGENJAYA' },
+      { junction: '大橋JCT', main: '大橋JCT', sub: 'C2 中央環状線と接続', en: 'OHASHI JCT' },
+      { junction: '渋谷', main: '渋谷', sub: 'ビルの谷間', en: 'SHIBUYA' },
+      { junction: '高樹町', main: '六本木', sub: '正面に東京タワー', en: 'ROPPONGI' },
+      { at: [35.6681, 139.7401], main: '谷町JCT', sub: 'ラストスパート', en: 'TANIMACHI JCT' },
+    ],
+    marks: [
+      { s: 150, name: '用賀', kind: 'ic' },
+      { junction: '三軒茶屋', name: '三軒茶屋', kind: 'ic' },
+      { junction: '大橋JCT', name: '大橋JCT', kind: 'jct', dest: 'C2 中央環状線' },
+      { junction: '渋谷', name: '渋谷', kind: 'ic' },
+      { junction: '高樹町', name: '高樹町', kind: 'ic' },
+      { at: [35.66250, 139.73100], name: '六本木', kind: 'ic' },
+      { at: [35.6681, 139.7401], name: '谷町JCT', kind: 'jct', dest: 'C1 都心環状線' },
+      { fromEnd: 380, name: '霞が関', kind: 'goal', sign: '霞が関 三宅坂JCT' },
+    ],
+    ads: [
+      { junction: '霞が関', before: 700, kind: 'techgym' },
+    ],
+    routeNo: [{ s: 0, no: '3' }, { at: [35.6681, 139.7401], no: 'C1' }],
+    parks: [
+      { lat: 35.6255, lon: 139.6615, r: 380, kind: 'park', name: '駒沢オリンピック公園' },
+      { lat: 35.6660, lon: 139.7205, r: 300, kind: 'park', name: '青山霊園' },
+      { lat: 35.6780, lon: 139.7495, r: 230, kind: 'park', name: '国会前庭' },
+      { lat: 35.6750, lon: 139.7570, r: 260, kind: 'park', name: '日比谷公園' },
+    ],
+    landmarks: [
+      { model: 'komazawa', lat: 35.62550, lon: 139.66200, name: '駒沢オリンピック公園 記念塔' },
+      { crown: 0xff7a1a, lat: 35.64360, lon: 139.66960, r: 90, name: 'キャロットタワー', spot: 'キャロットタワー' },
+      { model: 'shibuya109', lat: 35.65950, lon: 139.69870, name: 'SHIBUYA109', spot: 'SHIBUYA109' },
+      { spot: '東京ミッドタウン・六本木ヒルズ', lat: 35.66250, lon: 139.73100, name: '六本木' },
+      ...CITY_LANDMARKS,
+    ],
   },
 ];
