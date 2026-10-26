@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">首都高GP</string>
+    <string name="title_activity_main">首都高グランプリ</string>
+    <string name="package_name">jp.techgym.shutoko</string>
+    <string name="custom_url_scheme">jp.techgym.shutoko</string>
+    <string name="admob_app_id">ca-app-pub-6411535997477460~3500223230</string>
+</resources>

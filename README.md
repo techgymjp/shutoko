@@ -100,12 +100,39 @@ PLATEAU のデータがある東京23区内でそろえています。新しい�
 
 ## 実行方法
 
-ビルドは不要です。静的ファイルとして配信してブラウザで `index.html` を開きます（ES Modules を使うため `file://` では動きません）。
+Web 版はビルド不要です。静的ファイルとして配信してブラウザで `index.html` を開きます（ES Modules を使うため `file://` では動きません）。
 
 ```sh
 python3 -m http.server 8000
 # → http://localhost:8000/
 ```
+
+## Android アプリ
+
+[Capacitor](https://capacitorjs.com/) で Android アプリにしています（パッケージ名 `jp.techgym.shutoko`）。ゲームのファイルはアプリに同梱するので、オフラインでも遊べます。
+
+- 動作確認用の APK（デバッグ署名・テスト広告）は、push のたびに GitHub Actions がビルドしてリリース画面に載せます
+  - リリース画面: https://github.com/techgymjp/shutoko/releases/tag/android-latest
+  - APK を直接: https://github.com/techgymjp/shutoko/releases/latest/download/shutoko.apk
+  - スマホで読み取る QR コード（リリース画面）: `docs/apk-qr.png`
+- GitHub Secrets（`ANDROID_KEYSTORE_BASE64` など 4 つ）が登録されていれば、本番広告の署名付き AAB（Google Play 用）も作り、Actions の Artifact `shutoko-release-aab` に置きます
+- 横画面固定・全画面・プレイ中は画面を消さない。戻るボタンはレース中ならポーズ、トップ・結果画面ならアプリを終了
+- 広告（Google AdMob）
+  - バナー: トップ・あそびかた・ルート選択・ポーズ・結果画面の下中央だけ（レース中は操作ボタンと重なるので出さない）
+  - 全画面広告: レースを始めるとき・トップへ戻るとき・ポーズからの再開・結果画面からもう一度 のたびに
+  - リワード広告: 大きくぶつかったあとに「広告を見て、ぶつかる前に巻き戻す」（1 レース 3 回まで。結果画面とシェア文に回数を表示）
+  - EU などでは起動時に同意確認を出し、トップ画面の「広告の設定」から変更できる
+- タイトル画面にビルド番号とプライバシーポリシーへのリンクを表示
+
+```sh
+npm ci
+npm run android:sync   # www/ にコピーして Android プロジェクトへ反映（テスト広告）
+npm run android:open   # Android Studio で開く
+```
+
+Google Play 用は `ADMOB_MODE=production npm run build && npx cap copy android` で本番広告に切り替えてから `./gradlew bundleRelease`（CI が自動で行います）。
+
+<img src="docs/apk-qr.png" width="180" alt="Android 版 APK のリリース画面の QR コード">
 
 ## コースデータの作り方
 
@@ -139,3 +166,9 @@ python3 -m http.server 8000
 | `js/audio.js` | 効果音（すべて WebAudio で合成） |
 
 テスト用に `index.html?debug` で開くと、コンソールから `dbg.warp(距離m)` で好きな地点へ移動できます。
+
+## ライセンス
+
+著作権はテックジム株式会社に帰属します（All rights reserved）。許可なく複製・改変・再配布すること、Web サイトやアプリ（Google Play、App Store など）として公開・販売すること、名前・ロゴ・アイコン・画像を使うことを禁止します。
+テックジムの受講生が学習目的で複製・改変することは許可しますが、アプリストアでの公開・広告の掲載・販売などの商用利用は禁止し、著作権表示を残してください。
+three.js（MIT）・OpenStreetMap（ODbL）・PLATEAU（CC BY 4.0 互換）などは、それぞれのライセンスのままです。詳しくは [LICENSE](LICENSE) を見てください。

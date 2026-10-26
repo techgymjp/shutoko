@@ -42,12 +42,15 @@ affected by the terms above:
 
 - three.js (vendor/three.module.min.js) — MIT License, Copyright 2010-2023 Three.js Authors.
   See vendor/three.LICENSE.
-- Road alignment in js/course-data.js — derived from OpenStreetMap data,
+- Road alignment in js/course-*.js — derived from OpenStreetMap data,
   © OpenStreetMap contributors, available under the Open Database License (ODbL) 1.0.
   https://www.openstreetmap.org/copyright
-  The road coordinates in js/course-data.js are a Derivative Database and are made
+  The road coordinates in js/course-*.js are a Derivative Database and are made
   available under the ODbL.
-- Building footprints and heights in js/course-data.js — processed from
+- Building footprints and heights in js/course-*.js — processed from
   「3D都市モデル（Project PLATEAU）東京都23区（2020年度）」, Ministry of Land, Infrastructure,
   Transport and Tourism of Japan (国土交通省). https://www.mlit.go.jp/plateau/
   Used under the PLATEAU Site Policy (compatible with CC BY 4.0).
+
+The Android app also uses Capacitor, @capacitor/app, @capacitor/share and
+@capacitor-community/admob (MIT License), installed from npm at build time.

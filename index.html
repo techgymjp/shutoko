@@ -70,15 +70,54 @@
     </div>
   </div>
 
-  <!-- タイトル -->
-  <div id="title">
-    <div class="t-wrap">
-      <div class="logo">
+  <!-- トップ画面 (ゲーム名・ひとこと・戦績と、プレイ / あそびかた のボタンだけ) -->
+  <div id="top" class="screen">
+    <div class="top-wrap">
+      <div class="logo big">
         <div class="logo-sub">SHUTO EXPRESSWAY</div>
         <h1>首都高<span>グランプリ</span></h1>
         <div class="logo-en">SHUTOKO GRAND PRIX</div>
       </div>
-      <div class="t-label">ルートを選ぶ</div>
+      <p class="catch">本物の首都高を 360km/h で駆け抜けろ。最後尾から逆転を狙う 3D レース</p>
+      <div id="top-best"></div>
+      <div class="top-btns">
+        <button id="btn-play" class="primary">プレイ</button>
+        <button id="btn-howto">あそびかた</button>
+      </div>
+      <div id="legal">
+        <span id="buildInfo"></span>
+        <a href="https://techgym.jp/privacy-policy/" target="_blank" rel="noopener">プライバシーポリシー</a>
+        <span id="adPrivacy" hidden>｜<a href="#" id="adPrivacyLink">広告の設定</a></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- あそびかた -->
+  <div id="howto" class="screen" hidden>
+    <div class="t-wrap">
+      <h2 class="scr-title">あそびかた</h2>
+      <div class="help">
+        <p class="keys-pc"><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
+        <p class="keys-touch">右手の <b>ACCEL</b> でアクセル、<b>BRAKE</b> でブレーキ、左手の <b>◀ ▶</b> でハンドル。<b>ERS</b> ボタンを押している間、溜めた電気で一気に加速（末脚）。右上の <b>❚❚</b> で一時停止。</p>
+        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。前の車の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。</p>
+        <p>……ただし、マシンにもそれぞれ<b>クセ</b>があるようです。前で引っぱるのが好きなマシン、後ろでじっと力を溜めるマシン——。チーム無線に耳を傾け、レース後のエンジニアの言葉をヒントに、<b>あなたのマシンに合った走り方</b>を見つけてください。</p>
+        <p>急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
+        <p class="app-only">アプリ版では、大きくぶつかったあとに<b>広告を見て、ぶつかる前に巻き戻す</b>ことができます（1レース3回まで）。</p>
+      </div>
+      <div class="scr-btns">
+        <button id="btn-howto-play" class="primary">プレイ</button>
+        <button id="btn-howto-back">トップへ戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- コースを選ぶ -->
+  <div id="title" class="screen" hidden>
+    <div class="t-wrap">
+      <div class="sel-head">
+        <button id="btn-back-top" class="back">← トップ</button>
+        <h2 class="scr-title">ルートを選ぶ</h2>
+      </div>
       <div id="courses"></div>
       <div class="t-row name-row">
         <div class="t-label">ドライバー名</div>
@@ -95,14 +134,18 @@
       </div>
       <button id="btn-start">スタート</button>
       <div id="best"></div>
-      <div class="help">
-        <p><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
-        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。前の車の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。</p>
-        <p>……ただし、マシンにもそれぞれ<b>クセ</b>があるようです。前で引っぱるのが好きなマシン、後ろでじっと力を溜めるマシン——。チーム無線に耳を傾け、レース後のエンジニアの言葉をヒントに、<b>あなたのマシンに合った走り方</b>を見つけてください。</p>
-        <p>三宅坂JCT・谷町JCTの急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
-      </div>
       <div class="t-credit">道路: © OpenStreetMap contributors（ODbL）　建物: 国土交通省 Project PLATEAU 3D都市モデル（東京都23区）を加工して作成</div>
     </div>
+  </div>
+
+  <!-- 巻き戻し (リワード広告。アプリのみ) -->
+  <div id="redo" hidden>
+    <div class="redo-msg">📺 広告を見て、ぶつかる前に巻き戻す？</div>
+    <div class="redo-btns">
+      <button id="redo-watch">巻き戻す</button>
+      <button id="redo-next">このまま走る</button>
+    </div>
+    <div id="redo-note"></div>
   </div>
   <div id="toast"></div>
   <div id="credit">© OpenStreetMap contributors / 国土交通省 PLATEAU</div>
@@ -135,6 +178,8 @@
     </div>
   </div>
 </div>
+<script src="js/ads-config.js"></script>
+<script src="js/build-info.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

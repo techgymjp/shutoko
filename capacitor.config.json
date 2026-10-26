@@ -1,0 +1,8 @@
+{
+  "appId": "jp.techgym.shutoko",
+  "appName": "首都高グランプリ",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#05060f"
+  }
+}

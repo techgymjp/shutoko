@@ -8,6 +8,7 @@ import { Cockpit } from './cockpit.js';
 import { Effects } from './effects.js';
 import { Traffic } from './traffic.js';
 import { Sound } from './audio.js';
+import { Ads } from './ads.js';
 
 // ---------------- 定数 ----------------
 const KMH = 3.6;
@@ -54,6 +55,13 @@ const store = {
 };
 const esc = (t) => String(t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const SHARE_URL = 'https://techgym.jp/column/claude-code-game-shutoko/';
+// Android アプリ (Capacitor) で動いているか。Web 版では Capacitor がないので何もしない
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const plugin = (name) => (NATIVE && window.Capacitor.Plugins ? window.Capacitor.Plugins[name] : null);
+const TOUCH = NATIVE || matchMedia('(pointer: coarse)').matches;
+document.body.classList.toggle('app', NATIVE);
+document.body.classList.toggle('touch', TOUCH);
+const REWIND_MAX = 3;   // 巻き戻し (リワード広告) は 1 レース 3 回まで
 const fmt = (t) => {
   const m = Math.floor(t / 60), s = t - m * 60;
   return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`;
@@ -110,11 +118,19 @@ window.addEventListener('keydown', (e) => {
   if (KEYMAP[e.code]) { input[KEYMAP[e.code]] = true; e.preventDefault(); }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (e.code === 'KeyM') toggleMute();
-  if (e.code === 'Enter' && !$('title').hidden) startRace();
+  if (e.code === 'Enter' && !$('title').hidden) beginRace();
 });
 window.addEventListener('keyup', (e) => { if (KEYMAP[e.code]) input[KEYMAP[e.code]] = false; });
-window.addEventListener('blur', () => { for (const k in input) input[k] = false; if (G && G.mode === 'race') togglePause(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && G && G.mode === 'race') togglePause(true); });
+window.addEventListener('blur', () => { for (const k in input) input[k] = false; if (G && G.mode === 'race' && !G.hold) togglePause(true); });
+// 裏に回ったら一時停止して音を止める (広告の表示中は広告側が音を止めている)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (G && G.mode === 'race' && !G.hold) togglePause(true);
+    Sound.suspend();
+  } else if (!Ads.showing) {
+    Sound.resume();
+  }
+});
 
 for (const b of document.querySelectorAll('#touch [data-k]')) {
   const k = b.dataset.k;
@@ -159,22 +175,45 @@ function buildTitle() {
 for (const b of document.querySelectorAll('#themes button')) {
   b.addEventListener('click', () => { theme = b.dataset.t; store.set('theme', theme); buildTitle(); });
 }
-$('btn-start').addEventListener('click', () => startRace());
+$('btn-start').addEventListener('click', () => beginRace());
+$('btn-play').addEventListener('click', () => showScreen('title'));
+$('btn-howto').addEventListener('click', () => showScreen('howto'));
+$('btn-howto-play').addEventListener('click', () => showScreen('title'));
+$('btn-howto-back').addEventListener('click', () => withInterstitial(() => showScreen('top')));
+$('btn-back-top').addEventListener('click', () => showScreen('top'));
 $('driver-name').addEventListener('change', (e) => {
   driverName = e.target.value.trim().slice(0, 12);
   store.set('name', driverName);
   buildTitle();
 });
 $('driver-name').addEventListener('keydown', (e) => e.stopPropagation());
-$('btn-resume').addEventListener('click', () => togglePause(false));
-$('btn-retry').addEventListener('click', () => { closeOverlays(); startRace(); });
-$('btn-quit').addEventListener('click', () => toTitle());
-$('btn-again').addEventListener('click', () => { closeOverlays(); startRace(); });
-$('btn-title').addEventListener('click', () => toTitle());
+// 全画面広告 (アプリのみ): レースを始めるとき・トップへ戻るとき・ポーズからの再開・結果画面からもう一度 のたびに出す
+let adBusy = false;
+async function withInterstitial(next) {
+  if (adBusy) return;
+  if (Ads.available) {
+    adBusy = true;
+    $('pause').hidden = true;
+    await Ads.showInterstitial(3000);
+    adBusy = false;
+  }
+  next();
+}
+function beginRace() { withInterstitial(() => { closeOverlays(); startRace(); }); }
+$('btn-resume').addEventListener('click', () => withInterstitial(() => togglePause(false)));
+$('btn-retry').addEventListener('click', () => beginRace());
+$('btn-quit').addEventListener('click', () => withInterstitial(toTitle));
+$('btn-again').addEventListener('click', () => beginRace());
+$('btn-title').addEventListener('click', () => withInterstitial(toTitle));
 $('btn-pause').addEventListener('click', () => togglePause());
 // 結果のシェア: スマホは端末の共有メニュー、パソコンは X の投稿画面
 $('btn-share').addEventListener('click', async () => {
   if (!G || !G.shareText) return;
+  // アプリでは Android の共有メニュー
+  if (plugin('Share')) {
+    try { await plugin('Share').share({ title: '首都高グランプリ', text: G.shareText, url: SHARE_URL }); } catch { /* キャンセル */ }
+    return;
+  }
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
     try { await navigator.share({ title: '首都高グランプリ', text: G.shareText, url: SHARE_URL }); return; } catch { /* キャンセル */ return; }
   }
@@ -205,7 +244,7 @@ function toggleMute() {
   $('btn-mute').textContent = Sound.muted ? '🔇' : '🔊';
 }
 function togglePause(force) {
-  if (!G || (G.mode !== 'race' && G.mode !== 'paused' && G.mode !== 'countdown')) return;
+  if (!G || G.hold || (G.mode !== 'race' && G.mode !== 'paused' && G.mode !== 'countdown')) return;
   const pause = force ?? G.mode !== 'paused';
   if (pause && G.mode !== 'paused') {
     G.prevMode = G.mode;
@@ -216,15 +255,155 @@ function togglePause(force) {
     G.mode = G.prevMode;
     $('pause').hidden = true;
   }
+  updateBanner();
 }
 function toTitle() {
   closeOverlays();
+  closeRedo();
   disposeGame();
   $('hud').hidden = true;
   $('touch').hidden = true;
-  $('title').hidden = false;
   Sound.silence();
-  buildTitle();
+  showScreen('top');
+}
+// タイトルまわりの画面: top (トップ) / howto (あそびかた) / title (ルートを選ぶ) / null (レース中)
+const SCREENS = ['top', 'howto', 'title'];
+let screen = 'top';
+function showScreen(name) {
+  screen = name;
+  for (const s of SCREENS) $(s).hidden = s !== name;
+  if (name === 'title') buildTitle();
+  if (name === 'top') buildTop();
+  if (name) $(name).scrollTop = 0;
+  updateBanner();
+}
+function buildTop() {
+  const pr = profile();
+  $('top-best').textContent = pr.races ? `${driverName || 'YOU'}　戦績 ${pr.races}戦 ${pr.wins}勝` : '';
+}
+// バナー広告 (アプリのみ): トップ・あそびかた・ルート選択・ポーズ・結果画面だけ。レース中は操作ボタンと重なるので出さない
+function updateBanner() {
+  const menu = !G && screen != null;
+  const stopped = G && !G.hold && (G.mode === 'paused' || G.mode === 'result');
+  Ads.setBanner(!!(menu || stopped));
+}
+
+// Android の戻るボタン: レース中はポーズ (ポーズ中なら再開)、トップ・結果画面ではアプリを閉じる
+if (plugin('App')) {
+  plugin('App').addListener('backButton', () => {
+    if (adBusy || Ads.showing || (G && G.hold)) return;
+    if (G) {
+      if (G.mode === 'result') plugin('App').exitApp();
+      else if (G.mode === 'paused') withInterstitial(() => togglePause(false));
+      else togglePause(true);
+      return;
+    }
+    if (screen === 'top') plugin('App').exitApp();
+    else if (screen === 'howto') withInterstitial(() => showScreen('top'));
+    else showScreen('top');
+  });
+}
+
+// トップ画面の下に、バージョン (アプリ版)・プライバシーポリシー・広告の設定 (EU など) を出す
+if (window.APP_VERSION && window.APP_VERSION !== 'dev') $('buildInfo').textContent = window.APP_VERSION;
+Ads.initDone.then(() => { if (Ads.privacyOptionsRequired) $('adPrivacy').hidden = false; });
+$('adPrivacyLink').addEventListener('click', (e) => { e.preventDefault(); Ads.showPrivacyOptions(); });
+
+// ---------------- 巻き戻し (リワード広告のチート。アプリのみ・1 レース 3 回まで) ----------------
+// 大きくぶつかったら、少しして「広告を見て、ぶつかる前に巻き戻す？」を出す。最後まで見ると、
+// ぶつかる約3秒前の状態 (全車の位置・速度・ERS・タイム) に戻してレースを続ける
+const REDO_DELAY = 2.5, REDO_WAIT = 5, REWIND_BACK = 3, SNAP_EVERY = 0.5, SNAP_KEEP = 30;
+const redo = { active: false, busy: false, t: 0, pending: 0, crashT: 0 };
+const G_SKIP = new Set(['t', 'dt', 'slowmo', 'shake', 'flash', 'red', 'jolt', 'lightsOut', 'countdown', 'prevMode', 'hold', 'rewinds']);
+const plainCopy = (o, skip) => {
+  const out = {};
+  for (const k in o) {
+    const v = o[k];
+    if ((typeof v === 'number' || typeof v === 'boolean') && !(skip && skip.has(k))) out[k] = v;
+  }
+  return out;
+};
+function takeSnapshot() {
+  if (!Ads.canReward || G.mode !== 'race') return;
+  if (G.snaps.length && G.raceT - G.snaps[G.snaps.length - 1].raceT < SNAP_EVERY) return;
+  G.snaps.push({ raceT: G.raceT, g: plainCopy(G, G_SKIP), racers: G.racers.map((r) => plainCopy(r)) });
+  if (G.snaps.length > SNAP_KEEP) G.snaps.shift();
+}
+function onBigCrash() {
+  if (!Ads.canReward || !G || G.mode !== 'race' || G.player.finished) return;
+  if (G.rewinds >= REWIND_MAX || redo.active || redo.pending > 0) return;
+  redo.pending = REDO_DELAY;
+  redo.crashT = G.raceT;
+}
+function showRedo() {
+  Object.assign(redo, { active: true, busy: false, t: REDO_WAIT, pending: 0 });
+  $('redo-watch').disabled = false;
+  $('redo-watch').textContent = '巻き戻す';
+  $('redo-note').textContent = `あと ${REWIND_MAX - G.rewinds} 回（1レース${REWIND_MAX}回まで）`;
+  $('redo').hidden = false;
+}
+function closeRedo() {
+  redo.active = false;
+  redo.pending = 0;
+  $('redo').hidden = true;
+}
+function updateRedo(dt) {
+  if (redo.pending > 0) {
+    redo.pending -= dt;
+    if (redo.pending <= 0) showRedo();
+    return;
+  }
+  if (!redo.active || redo.busy) return;
+  redo.t -= dt;
+  $('redo-next').textContent = `このまま走る（${Math.max(0, Math.ceil(redo.t))}）`;
+  if (redo.t <= 0 || G.player.finished) closeRedo();
+}
+// 広告の表示中はレースを止めておく (ポーズ画面は出さない)
+function holdGame(on) {
+  if (!G) return;
+  if (on && !G.hold) {
+    G.hold = true;
+    G.prevMode = G.mode;
+    G.mode = 'paused';
+    Sound.silence();
+  } else if (!on && G.hold) {
+    G.hold = false;
+    G.mode = G.prevMode;
+  }
+  updateBanner();
+}
+$('redo-next').addEventListener('click', closeRedo);
+$('redo-watch').addEventListener('click', async () => {
+  if (!redo.active || redo.busy || !G) return;
+  redo.busy = true;
+  $('redo-watch').disabled = true;
+  $('redo-watch').textContent = '読み込み中…';
+  for (const k in input) input[k] = false;
+  holdGame(true);
+  const game = G;
+  const result = await Ads.showRewarded();
+  if (G !== game) return;
+  if (result === 'unavailable') {
+    $('redo-note').textContent = '広告を読み込めませんでした';
+    holdGame(false);
+    setTimeout(closeRedo, 1500);
+    return;
+  }
+  closeRedo();
+  if (result === 'rewarded') rewind();
+  holdGame(false);
+});
+function rewind() {
+  // ぶつかる約3秒前のスナップショット (なければいちばん古いもの)
+  let snap = G.snaps[0];
+  for (const s of G.snaps) if (s.raceT <= redo.crashT - REWIND_BACK) snap = s;
+  if (!snap) return;
+  Object.assign(G, snap.g);
+  G.racers.forEach((r, i) => Object.assign(r, snap.racers[i]));
+  G.snaps = G.snaps.filter((s) => s.raceT <= snap.raceT);
+  G.rewinds++;
+  G.shake = G.flash = G.red = G.slowmo = 0;
+  showAlert('巻き戻し!', 'good', 1200);
 }
 
 // ---------------- レースの準備 ----------------
@@ -239,9 +418,11 @@ function disposeGame() {
 function startRace() {
   Sound.init();
   disposeGame();
-  $('title').hidden = true;
+  closeRedo();
+  for (const s of SCREENS) $(s).hidden = true;
+  screen = null;
   $('hud').hidden = false;
-  $('touch').hidden = !matchMedia('(pointer: coarse)').matches;
+  $('touch').hidden = !TOUCH;
   const def = COURSES[selected];
   const course = new Course(def);
   const scene = new THREE.Scene();
@@ -309,7 +490,9 @@ function startRace() {
     towerT: 0, finishT: 0, spots: new Set(), hitLog: [],
     M: MACHINES[styleKey], styleKey, hidden, ers: 0, ersOn: false, leadT: 0, penalty: 0, penCd: 0, calls: new Set(),
     fit: 'behind', fitT: { ahead: 0, fit: 0, behind: 0 }, radioT: 12, lastRadio: '', ersEmptyAt: null,
+    hold: false, snaps: [], rewinds: 0,
   };
+  updateBanner();
   G.ers = G.M.ers;
   world.prebuild(player.s);
   resize();
@@ -477,6 +660,7 @@ function hitFx(power, pos, vel, kind, color = 0xf3f3f3) {
     : (power > 0.6 ? ['ドカン!!', '激突!!', 'ガツン!!'] : ['接触!', 'コツン!', 'バチッ!']);
   showAlert(words[Math.floor(Math.random() * words.length)], power > 0.6 ? 'big' : '', 900);
   G.hits++;
+  if (power > 0.6) onBigCrash();
   G.hitLog.push(`${kind}:${power.toFixed(2)}@${Math.round(G.player.s)}`);
 }
 
@@ -891,7 +1075,8 @@ function showResult() {
     <span>スタート <b>${P.slot + 1}番グリッド</b></span>
     <span>オーバーテイク <b>${G.overtakes}</b></span>
     <span>接触 <b>${G.hits}</b>回</span>
-    <span>最高速 <b>${Math.round(G.best * KMH)}</b>km/h</span>`;
+    <span>最高速 <b>${Math.round(G.best * KMH)}</b>km/h</span>${G.rewinds ? `
+    <span>巻き戻し <b>${G.rewinds}</b>回</span>` : ''}`;
   // 最終順位 (まだ走っている車は予想タイム)
   const rows = [...G.racers].map((r) => ({ r, t: r.finished ? r.time : G.raceT + (G.goalS - r.s) / Math.max(30, r.v) }))
     .sort((a, b) => a.t - b.t);
@@ -920,9 +1105,11 @@ function showResult() {
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
     <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? esc(nameOf(r)) + ' (' + r.team.name + ')' : r.team.name}</td>
     <td>${fmt(t)}</td></tr>`).join('');
-  G.shareText = `首都高グランプリ「${G.def.title}」で${P.rank}位！ タイム ${fmt(P.time)}（12番グリッドから${G.overtakes}台抜き） #首都高グランプリ`;
+  G.shareText = `首都高グランプリ「${G.def.title}」で${P.rank}位！ タイム ${fmt(P.time)}（12番グリッドから${G.overtakes}台抜き${G.rewinds ? `・巻き戻し${G.rewinds}回` : ''}） #首都高グランプリ`;
+  closeRedo();
   $('result').hidden = false;
   Sound.silence();
+  updateBanner();
 }
 
 // タイミングタワー (左の順位表)
@@ -1149,6 +1336,7 @@ function frame(now, noRender) {
   updateRanks();
   updateAttack(dt);
   if (G.mode === 'race') checkFinish();
+  if (G.mode === 'race') { takeSnapshot(); updateRedo(dt); }
   const P = G.player;
   // トンネルの暗さ
   const inT = G.course.inTunnel(P.s + 5) ? 1 : 0;
@@ -1215,5 +1403,5 @@ if (location.search.includes('debug')) {
   };
 }
 resize();
-buildTitle();
+showScreen('top');
 requestAnimationFrame(frame);

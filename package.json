@@ -1,0 +1,21 @@
+{
+  "name": "shutoko",
+  "version": "1.0.0",
+  "private": true,
+  "description": "首都高グランプリ 首都高を走る 3D レースゲーム（Web / Android）",
+  "scripts": {
+    "build": "node scripts/build-web.js",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.2.1",
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}
