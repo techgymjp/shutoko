@@ -431,7 +431,7 @@ function startRace() {
     steer: 0, gear: 1, rpm: 4000, lastGear: 1,
     rank: playerSlot + 1, prevRank: playerSlot + 1, boost: 0, slip: 0,
     sectionIdx: -1, scrapeT: 0, hits: 0, overtakes: 0, best: 0, tunnel: 0,
-    towerT: 0, finishT: 0, spots: new Set(), hitLog: [],
+    towerT: 0, finishT: 0, spots: new Set(), hitLog: [], annQ: [], annT: 0,
     M: MACHINES[styleKey], styleKey, hidden, ers: 0, ersOn: false, leadT: 0, penalty: 0, penCd: 0, calls: new Set(),
     fit: 'behind', fitT: { ahead: 0, fit: 0, behind: 0 }, radioT: 12, lastRadio: '', ersEmptyAt: null,
   };
@@ -1202,10 +1202,7 @@ function updateHUD(dt) {
   for (const [d, msg] of [[3000, '残り3km 位置取りを決めろ!'], [1500, '残り1.5km そろそろ仕掛けどころ!'], [600, 'ゴール前 全開! ERSを使い切れ!']]) {
     if (G.mode === 'race' && left < d && !G.calls.has(d)) {
       G.calls.add(d);
-      const el = $('announce');
-      el.textContent = msg;
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 3000);
+      G.annQ.unshift({ text: msg, t: 3 });
     }
   }
   $('boost-v').textContent = '+' + Math.round(G.boost * VMAX * KMH);
@@ -1227,20 +1224,36 @@ function updateHUD(dt) {
     }
     G.sectionIdx = si;
   }
-  // 沿道の名所のお知らせ
+  // 沿道の名所のお知らせ。いちばん近づく所がトンネルの中なら、近いほうのトンネルの出入口で出す
   for (const L of G.course.landmarks) {
-    if (L.spot && !G.spots.has(L.name) && P.s > L.s - 450 && P.s < L.s) {
-      G.spots.add(L.name);
-      // 見える方向 (左手・右手・正面) は道路の向きから決める。遠すぎる時は出さない
-      const q = G.course.at(P.s);
-      const dx = L.x - q.x, dz = L.z - q.z;
-      if (Math.hypot(dx, dz) > 1200) continue;
-      const ang = Math.atan2(dx * q.lx + dz * q.lz, dx * q.tx + dz * q.tz) * 180 / Math.PI;
-      const where = Math.abs(ang) < 20 ? '正面に' : ang > 0 ? '左手に' : '右手に';
-      const el = $('announce');
-      el.textContent = `${where} ${L.spot}`;
+    if (!L.spot || G.spots.has(L.name)) continue;
+    const s = spotS(L);
+    if (s == null || P.s < s - 700 || P.s > s) continue;
+    G.spots.add(L.name);
+    const q = G.course.at(P.s);
+    if (Math.hypot(L.x - q.x, L.z - q.z) > 1200) continue;
+    G.annQ.push({ L, s, t: 2.2 });
+  }
+  // お知らせは重ならないよう順番に出す。名所は通り過ぎてしまったら出さない
+  G.annT -= dt;
+  if (G.annT <= 0) {
+    const el = $('announce');
+    let a = G.annQ.shift();
+    while (a && a.L && P.s > a.s + 450) a = G.annQ.shift();
+    if (a) {
+      let text = a.text;
+      if (a.L) {
+        // 見える方向 (左手・右手・正面) は道路の向きから決める
+        const q = G.course.at(P.s);
+        const dx = a.L.x - q.x, dz = a.L.z - q.z;
+        const ang = Math.atan2(dx * q.lx + dz * q.lz, dx * q.tx + dz * q.tz) * 180 / Math.PI;
+        text = `${Math.abs(ang) < 20 ? '正面に' : ang > 0 ? '左手に' : '右手に'} ${a.L.spot}`;
+      }
+      el.textContent = text;
       el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 4000);
+      G.annT = a.t;
+    } else if (el.classList.contains('show')) {
+      el.classList.remove('show');
     }
   }
   // 画面効果
@@ -1253,6 +1266,19 @@ function updateHUD(dt) {
   $('redv').style.opacity = G.red.toFixed(3);
   $('tunnelfade').style.opacity = (G.tunnel * 0.25).toFixed(3);
   return { kmh, gear, rpmK };
+}
+
+// 名所のお知らせを出す地点 (トンネルの中なら出入口のうち近いほう。遠すぎるなら出さない)
+function spotS(L) {
+  if (L.annS !== undefined) return L.annS;
+  const tn = G.course.inTunnel(L.s);
+  let s = L.s;
+  if (tn) {
+    s = L.s - tn[0] < tn[1] - L.s ? tn[0] - 20 : tn[1] + 120;
+    if (Math.abs(s - L.s) > 900) s = null;
+  }
+  L.annS = s;
+  return s;
 }
 
 // ---------------- ループ ----------------

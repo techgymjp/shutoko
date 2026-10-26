@@ -218,6 +218,7 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 #res-notes p { margin: 4px 0; }
 }
 @media (pointer: coarse) {
+  #radio { left: 12px; bottom: calc(176px + env(safe-area-inset-bottom)) !important; }
   #speedbox { right: auto; left: 50%; transform: translateX(-50%); }
   #ersbox { width: 180px; right: auto; left: 50%; transform: translateX(-50%); bottom: calc(100px + env(safe-area-inset-bottom)); }
   #radio { bottom: calc(110px + env(safe-area-inset-bottom)); }
@@ -254,7 +255,9 @@ body.app .overlay { padding-bottom: 64px; }
 #lock-note { text-align: center; color: #ffd23a; font-size: 14px; margin: 4px 0; }
 #res-unlock { margin: 6px 0; padding: 6px 10px; border-radius: 8px; background: rgba(255,210,58,0.15); color: #ffd23a; font-weight: 900; }
 /* 右手の ERS は BRAKE の上に重ねて置く (狭い画面で速度計と重ならないように) */
-#touch .tr button.ers { position: absolute; left: 9px; bottom: calc(100% + 8px); width: 60px; height: 60px; }
+/* ERS は左手のハンドルボタンの上。BRAKE は ACCEL の下端にそろえて低くし、縮小図が見えるように */
+#touch .tl button.ers { position: absolute; left: 9px; bottom: calc(100% + 10px); width: 64px; height: 64px; }
+#touch .tr { align-items: flex-end; bottom: calc(8px + env(safe-area-inset-bottom)); }
 /* スマホ: 縮小図を画面の高さに合わせてできるだけ大きく (右下の ERS ボタンが少しかぶってもよい) */
 @media (pointer: coarse) {
   :root { --map: clamp(140px, min(calc(100vh - 186px), 40vw), 300px); }
