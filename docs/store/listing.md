@@ -1,6 +1,6 @@
 # Google Play ストア掲載情報（下書き）
 
-Play Console の「ストアの掲載情報」に貼り付けて使います。既定の言語を日本語にし、「翻訳を管理」から英語（en-US）を追加してください。英語は `listing-en.txt` にも同じものがあります。
+Play Console の「ストアの掲載情報」と App Store Connect のバージョンのページに貼り付けて使います（App Store だけの欄は下の「App Store（iOS）だけの欄」）。既定の言語を日本語にし、「翻訳を管理」から英語（en-US）を追加してください。英語は `listing-en.txt` にも同じものがあります。
 
 ## 画像（このフォルダ）
 
@@ -130,6 +130,52 @@ You always start last of 12 cars. Overtake on elevated highways, draft through t
 
 Road data © OpenStreetMap contributors (ODbL) / Building data processed from Project PLATEAU (MLIT, Japan)
 This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
+```
+
+---
+
+## App Store（iOS）だけの欄
+
+App Store Connect のバージョンのページに入れます。概要（説明）は上の「詳しい説明」をそのまま使います。
+
+### 日本語
+
+**サブタイトル**（30 文字以内）
+
+```
+本物の首都高を駆ける3Dレース
+```
+
+**プロモーション用テキスト**（170 文字以内。審査なしでいつでも書き換えられる）
+
+```
+本物の首都高を3Dで再現！ 12台の最後尾からスタートして、ゴール直前で差し切れ。夜は虹色に光るレインボーブリッジ、夕暮れには富士山と東京タワー。東京23区の首都高16コースを全開で駆け抜けよう。
+```
+
+**キーワード**（100 文字以内。カンマ区切り、スペースなし。アプリ名に入っている語は入れなくてよい）
+
+```
+首都高,レース,カーレース,東京,高速道路,3D,ドライブ,フォーミュラ,レインボーブリッジ,東京タワー
+```
+
+### English
+
+**Subtitle** (max 30 characters)
+
+```
+Race Tokyo's real expressway
+```
+
+**Promotional text** (max 170 characters)
+
+```
+Race Tokyo's real Shuto Expressway in 3D! Start last of 12 and steal the win at the line - 16 courses, from the rainbow-lit Rainbow Bridge to Tokyo Tower at sunset.
+```
+
+**Keywords** (max 100 characters, comma-separated, no spaces)
+
+```
+racing,race,car,tokyo,highway,expressway,3d,formula,japan,driving
 ```
 
 ---

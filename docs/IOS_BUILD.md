@@ -110,8 +110,9 @@ npm run ios:open
 | --- | --- |
 | スクリーンショット | 「Dynamic Island 搭載 iPhone（中型ディスプレイ）」の欄に、`docs/store/ios/6.3inch/` の 2622 × 1206（横向き）を入れる。日本語版（ja-）と英語版（en-）各 4 枚 |
 | ヘッダ・検索結果 | 「ヘッダと検索結果」タブに `docs/store/ios/appstore-header-3840x1646.png` と `appstore-search-3840x2560.png`（両方入れる。片方だけだと赤枠になる） |
-| プロモーション用テキスト・概要 | Google Play 用の文章（`docs/store/listing.md`）を流用 |
-| キーワード（100 文字以内） | `首都高,レース,カーレース,東京,高速道路,3D,ドライブ,フォーミュラ,レインボーブリッジ,東京タワー` ／ 英語：`racing,race,car,tokyo,highway,expressway,3d,formula,japan,driving` |
+| サブタイトル・プロモーション用テキスト | `docs/store/listing.md` の「App Store（iOS）だけの欄」 |
+| 概要 | `docs/store/listing.md` の「詳しい説明」 |
+| キーワード（100 文字以内） | `docs/store/listing.md` の「App Store（iOS）だけの欄」 |
 | サポート URL | https://techgym.jp/ |
 | プライバシーポリシー URL（App 情報） | https://techgym.jp/privacy-policy/ |
 | カテゴリ（App 情報） | ゲーム（サブカテゴリ「レース」） |
