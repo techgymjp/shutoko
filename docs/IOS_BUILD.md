@@ -131,21 +131,18 @@ Google の「Apple の App Store のデータ開示要件への準備」（AdMob
 - トラッキングに使用：デバイス ID と広告データは「する」
 - アプリ自体は個人情報を集めない（ドライバー名・戦績・コースの鍵は端末の中だけに保存）
 
-**審査へのメモ（App Review に関する情報の「メモ」に貼る。初回に「Guideline 2.1 - Information Needed」が来たら、同じ文と録画を返信する）**
+**審査へのメモ（App Review に関する情報の「メモ」に貼る。初回に「Guideline 2.1 - Information Needed」が来たら、同じ文を返信し、4 章で撮った録画を添付する）**
 
 ```
-1. Screen recording: (録画の共有リンクまたは添付)
-   Recorded on a physical iPhone running the latest iOS, starting from app launch.
+1. Purpose and audience: Shutoko GP is a free 3D racing game for ages 13+. Players race formula cars on a recreation of Tokyo's urban expressway built from open data (OpenStreetMap and Japan's PLATEAU 3D city models).
 
-2. Purpose and audience: Shutoko GP is a free 3D racing game for ages 13+. Players race formula cars on a recreation of Tokyo's urban expressway built from open data (OpenStreetMap and Japan's PLATEAU 3D city models).
+2. How to use: No login or account is needed. Tap "プレイ" (Play), choose a route, and tap "スタート" (Start). Steer with ◀ ▶, use ACCEL / BRAKE on the right and ERS for a speed boost. All text in the game is Japanese.
 
-3. How to use: No login or account is needed. Tap "プレイ" (Play), choose a route, and tap "スタート" (Start). Steer with ◀ ▶, use ACCEL / BRAKE on the right and ERS for a speed boost. All text in the game is Japanese.
+3. External services: Google AdMob (banner, interstitial and rewarded ads) with Google's consent form (UMP) and App Tracking Transparency. Rewarded ads are optional: watching one lets the player race a locked course once. No other services or in-app purchases.
 
-4. External services: Google AdMob (banner, interstitial and rewarded ads) with Google's consent form (UMP) and App Tracking Transparency. Rewarded ads are optional: watching one lets the player race a locked course once. No other services or in-app purchases.
+4. Regional differences: None, except that the ad consent form appears only where required (e.g. EEA/UK).
 
-5. Regional differences: None, except that the ad consent form appears only where required (e.g. EEA/UK).
-
-6. Regulated content / third-party material: The game is not in a regulated industry. Road shapes come from OpenStreetMap (ODbL) and buildings from Project PLATEAU by MLIT Japan (CC BY 4.0 compatible); both licenses allow commercial use and are credited in the app. This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
+5. Regulated content / third-party material: The game is not in a regulated industry. Road shapes come from OpenStreetMap (ODbL) and buildings from Project PLATEAU by MLIT Japan (CC BY 4.0 compatible); both licenses allow commercial use and are credited in the app. This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
 ```
 
 入力が終わったら「審査用に追加」→「審査へ提出」。
@@ -171,7 +168,12 @@ JET STRIKE の `docs/IOS_BUILD.md` の 7 章と同じです。App Store Connect 
 | `ASC_ISSUER_ID` | Issuer ID |
 | `ASC_KEY_P8_BASE64` | API キー（.p8）を変換した文字列 |
 
-登録が終わったら、Claude Code に「iOS の自動アップロードのワークフローを作って」と頼みます。
+登録済みです。既定のブランチに push するたびに、GitHub Actions の「iOS release (TestFlight)」（`.github/workflows/ios-release.yml`）が、本番広告の設定でビルドして App Store Connect（TestFlight）にアップロードします。
+
+- ビルド番号は **100 + 実行回数**（Mac の Xcode から手でアップロードする 1、2、… と重ならないように）。Version は `package.json` の version
+- 署名用のプロファイル（`jp.techgym.shutoko AppStore CI`）は、API キーを使って自動で作ります（`scripts/ios_profile.py`）
+- 手で動かすときは Actions タブ →「iOS release (TestFlight)」→「Run workflow」
+- 審査への提出は、これまでどおり App Store Connect で行う
 
 **注意**：証明書（.p12）、そのパスワード、API キー（.p8）は、チャット・AI へのアップロード・リポジトリへのコミットで**絶対に共有しない**でください。
 
