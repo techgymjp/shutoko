@@ -27,7 +27,7 @@ export const Ads = (() => {
       // 本番の広告ユニット(AdMob の「首都高グランプリ」iOS)。空の種類は本番ビルド(App Store 用)では出さない
       production: {
         interstitial: 'ca-app-pub-6411535997477460/3289764811',
-        rewarded: '',
+        rewarded: 'ca-app-pub-6411535997477460/6499428262',
         banner: 'ca-app-pub-6411535997477460/7617068814',
       },
     },
