@@ -144,7 +144,7 @@ Android 版と同じ Capacitor のプロジェクトに `ios/` を足して、iP
 - Mac での作業手順（ビルド・TestFlight・審査）は [`docs/IOS_BUILD.md`](docs/IOS_BUILD.md)
 - 広告は Android 版と同じ場面に出し、iOS では起動時に App Tracking Transparency の確認を出す。広告ユニットは `js/ads.js` の `UNITS.ios`
 - push のたびに GitHub Actions が、署名なしでシミュレーター向けにビルドできるかを確かめる（`.github/workflows/ios.yml`）
-- App Store 用の画像は `docs/store/ios/`（スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
+- App Store 用の掲載情報（日英の名前・サブタイトル・プロモーション用テキスト・概要・キーワード）と画像は `docs/store/ios/`（`listing.md`、スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
 
 ```sh
 npm ci

@@ -45,15 +45,3 @@ You always start last of 12 cars. Overtake on elevated highways, draft through t
 
 Road data © OpenStreetMap contributors (ODbL) / Building data processed from Project PLATEAU (MLIT, Japan)
 This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
-
-[App Store subtitle] (max 30 characters)
-
-Race Tokyo's real expressway
-
-[App Store promotional text] (max 170 characters)
-
-Race Tokyo's real Shuto Expressway in 3D! Start last of 12 and steal the win at the line - 16 courses, from the rainbow-lit Rainbow Bridge to Tokyo Tower at sunset.
-
-[App Store keywords] (max 100 characters)
-
-racing,race,car,tokyo,highway,expressway,3d,formula,japan,driving
