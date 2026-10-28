@@ -1,0 +1,51 @@
+name: Store assets
+
+# ストア用の紹介文と画像を zip にして、Release「store-assets」に載せる (まとめてダウンロードできるように)
+#   App Store 用:   https://github.com/techgymjp/shutoko/releases/download/store-assets/shutoko-appstore.zip
+#   Google Play 用: https://github.com/techgymjp/shutoko/releases/download/store-assets/shutoko-googleplay.zip
+on:
+  push:
+    paths:
+      - 'docs/store/**'
+      - '.github/workflows/store-assets.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: store-assets-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make zip files
+        run: |
+          cd docs/store
+          zip -qr "$GITHUB_WORKSPACE/shutoko-appstore.zip" ios
+          zip -q "$GITHUB_WORKSPACE/shutoko-googleplay.zip" listing.md listing-en.txt icon-512.png feature-graphic.png ja-*.png
+
+      # Release は消さずに zip だけ差し替える (ダウンロードできない時間を作らないため)
+      - name: Publish to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<NOTES
+          ストアに登録する紹介文と画像をまとめた zip です（docs/store/ から自動で作成）。
+
+          - shutoko-appstore.zip … App Store 用（listing.md、スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
+          - shutoko-googleplay.zip … Google Play 用（listing.md・listing-en.txt、アイコン 512×512、フィーチャーグラフィック 1024×500、スクリーンショット 1920×1080 6 枚）
+
+          コミット ${GITHUB_SHA}
+          NOTES
+          if gh release view store-assets > /dev/null 2>&1; then
+            gh release upload store-assets shutoko-appstore.zip shutoko-googleplay.zip --clobber
+            gh release edit store-assets --notes-file notes.md
+          else
+            gh release create store-assets shutoko-appstore.zip shutoko-googleplay.zip --target "$GITHUB_SHA" --title "ストア用の紹介文と画像" --notes-file notes.md --latest=false
+          fi
