@@ -97,8 +97,8 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          PROFILE=$(python3 scripts/ios_profile.py)
-          echo "PROFILE_NAME=$PROFILE" >> "$GITHUB_ENV"
+          export PROFILE_NAME="$(python3 scripts/ios_profile.py)"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
           # アプリ本体の Release だけを手動署名 (配布用の証明書とプロファイル) にする
           python3 - <<'PY'
           import os, re
