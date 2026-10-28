@@ -1,20 +1,35 @@
-// Google AdMob 広告（Android アプリのときだけ動く。Web 版では何もしない）
+// Google AdMob 広告（Android / iOS アプリのときだけ動く。Web 版では何もしない）
 // 構成は techgymjp/jackal の ads.js と同じ。リワード・インタースティシャル・バナーを使う
 import { Sound } from './audio.js';
 
 export const Ads = (() => {
   const UNITS = {
-    // Google 公式のテスト用広告ユニット
-    test: {
-      interstitial: 'ca-app-pub-3940256099942544/1033173712',
-      rewarded: 'ca-app-pub-3940256099942544/5224354917',
-      banner: 'ca-app-pub-3940256099942544/6300978111',
+    android: {
+      // Google 公式のテスト用広告ユニット
+      test: {
+        interstitial: 'ca-app-pub-3940256099942544/1033173712',
+        rewarded: 'ca-app-pub-3940256099942544/5224354917',
+        banner: 'ca-app-pub-3940256099942544/6300978111',
+      },
+      // 本番の広告ユニット(AdMob の「首都高グランプリ」Android)。空の種類は本番ビルド(Google Play 用)では出さない
+      production: {
+        interstitial: 'ca-app-pub-6411535997477460/6459015332',
+        rewarded: 'ca-app-pub-6411535997477460/3832851999',
+        banner: 'ca-app-pub-6411535997477460/8349139516',
+      },
     },
-    // 本番の広告ユニット(AdMob の「首都高グランプリ」)。空の種類は本番ビルド(Google Play 用)では出さない
-    production: {
-      interstitial: 'ca-app-pub-6411535997477460/6459015332',
-      rewarded: 'ca-app-pub-6411535997477460/3832851999',
-      banner: 'ca-app-pub-6411535997477460/8349139516',
+    ios: {
+      test: {
+        interstitial: 'ca-app-pub-3940256099942544/4411468910',
+        rewarded: 'ca-app-pub-3940256099942544/1712485313',
+        banner: 'ca-app-pub-3940256099942544/2934735716',
+      },
+      // 本番の広告ユニット(AdMob の「首都高グランプリ」iOS)。空の種類は本番ビルド(App Store 用)では出さない
+      production: {
+        interstitial: '',
+        rewarded: '',
+        banner: '',
+      },
     },
   };
   const RETRY_MS = 20000;      // 読み込みに失敗したら少し待って再挑戦する
@@ -22,7 +37,8 @@ export const Ads = (() => {
   const native = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
   let AdMob = native && cap.Plugins ? cap.Plugins.AdMob : null;
   const testing = window.AD_MODE !== 'production';
-  const ids = testing ? UNITS.test : UNITS.production;
+  const platform = native && cap.getPlatform && cap.getPlatform() === 'ios' ? 'ios' : 'android';
+  const ids = UNITS[platform][testing ? 'test' : 'production'];
   // 広告ユニット ID がある種類だけ使う(1 つもなければ広告を使わない)
   const has = (kind) => !!ids[kind];
   if (!has('interstitial') && !has('rewarded') && !has('banner')) AdMob = null;
@@ -82,6 +98,14 @@ export const Ads = (() => {
       privacyRequired = consent.privacyOptionsRequirementStatus === 'REQUIRED';
     } catch (e) {
       ready = true;
+    }
+    // iOS では、広告用の ID を使ってよいか (App Tracking Transparency) を利用者に確認する。
+    // 同意確認のあとに一度だけ出る。断られても広告は出せる (パーソナライズされないだけ)
+    if (platform === 'ios') {
+      try {
+        const { status } = await AdMob.trackingAuthorizationStatus();
+        if (status === 'notDetermined') await AdMob.requestTrackingAuthorization();
+      } catch (e) { /* 確認できなくても広告は出せる */ }
     }
     let rewarded = false;
     AdMob.addListener('interstitialAdDismissed', () => finish('inter'));

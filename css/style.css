@@ -24,6 +24,9 @@ kbd { font-family: var(--font); background: #2a3340; border: 1px solid #4a5666; 
 
 /* HUD */
 #hud { position: absolute; inset: 0; pointer-events: none; }
+/* iPhone の横画面: Dynamic Island やカメラの切り欠きに HUD が隠れないよう、左右の安全な範囲の内側に置く */
+#hud { left: env(safe-area-inset-left); right: env(safe-area-inset-right); }
+.screen { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 .panel { position: absolute; background: var(--panel); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(4px); }
 .panel .row { display: flex; align-items: baseline; gap: 8px; font-size: 14px; line-height: 1.5; }
 .panel .lbl { color: var(--sub); font-size: 11px; min-width: 30px; }

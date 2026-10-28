@@ -52,5 +52,5 @@ affected by the terms above:
   Transport and Tourism of Japan (国土交通省). https://www.mlit.go.jp/plateau/
   Used under the PLATEAU Site Policy (compatible with CC BY 4.0).
 
-The Android app also uses Capacitor, @capacitor/app, @capacitor/share and
+The Android and iOS apps also use Capacitor, @capacitor/app, @capacitor/share and
 @capacitor-community/admob (MIT License), installed from npm at build time.

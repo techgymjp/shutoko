@@ -137,6 +137,22 @@ Google Play 用は `ADMOB_MODE=production npm run build && npx cap copy android`
 
 <img src="docs/apk-qr.png" width="180" alt="Android 版 APK のリリース画面の QR コード">
 
+## iOS アプリ
+
+Android 版と同じ Capacitor のプロジェクトに `ios/` を足して、iPhone 用のアプリにしています（Bundle ID `jp.techgym.shutoko`、iPhone 専用・横画面固定）。
+
+- Mac での作業手順（ビルド・TestFlight・審査）は [`docs/IOS_BUILD.md`](docs/IOS_BUILD.md)
+- 広告は Android 版と同じ場面に出し、iOS では起動時に App Tracking Transparency の確認を出す。広告ユニットは `js/ads.js` の `UNITS.ios`
+- push のたびに GitHub Actions が、署名なしでシミュレーター向けにビルドできるかを確かめる（`.github/workflows/ios.yml`）
+- App Store 用の画像は `docs/store/ios/`（スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
+
+```sh
+npm ci
+npm run ios:sync      # テスト広告で iOS プロジェクトへ反映
+npm run ios:release   # App Store 用 (本番広告)
+npm run ios:open      # Xcode で開く
+```
+
 ## コースデータの作り方
 
 `js/course-data.js`（道路の線・高さ・トンネル区間・建物）は次の手順で作ります。
