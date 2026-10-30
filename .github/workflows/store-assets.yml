@@ -28,7 +28,7 @@ jobs:
         run: |
           cd docs/store
           zip -qr "$GITHUB_WORKSPACE/shutoko-appstore.zip" ios
-          zip -q "$GITHUB_WORKSPACE/shutoko-googleplay.zip" listing.md listing-en.txt icon-512.png feature-graphic.png ja-*.png
+          zip -q "$GITHUB_WORKSPACE/shutoko-googleplay.zip" listing.md listing-en.txt icon-512.png feature-graphic.png feature-graphic-en.png ja-*.png en-*.png
 
       # Release は消さずに zip だけ差し替える (ダウンロードできない時間を作らないため)
       - name: Publish to GitHub Release
@@ -39,7 +39,7 @@ jobs:
           ストアに登録する紹介文と画像をまとめた zip です（docs/store/ から自動で作成）。
 
           - shutoko-appstore.zip … App Store 用（listing.md、スクリーンショット 2622×1206 日英各 4 枚、ヘッダ 3840×1646、検索結果 3840×2560）
-          - shutoko-googleplay.zip … Google Play 用（listing.md・listing-en.txt、アイコン 512×512、フィーチャーグラフィック 1024×500、スクリーンショット 1920×1080 6 枚）
+          - shutoko-googleplay.zip … Google Play 用（listing.md・listing-en.txt、アイコン 512×512、フィーチャーグラフィック 1024×500、フィーチャーグラフィック英語版、スクリーンショット 1920×1080 日英各 6 枚）
 
           コミット ${GITHUB_SHA}
           NOTES

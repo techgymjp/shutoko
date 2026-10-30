@@ -8,9 +8,11 @@ Play Console の「ストアの掲載情報」に貼り付けて使います。A
 | --- | --- | --- |
 | アプリのアイコン | `icon-512.png` | 512 × 512 |
 | フィーチャー グラフィック | `feature-graphic.png` | 1024 × 500 |
-| スマートフォンのスクリーンショット | `ja-1-rainbow-bridge-night.png` 〜 `ja-6-routes.png`（6 枚） | 1920 × 1080 |
+| フィーチャー グラフィック（英語） | `feature-graphic-en.png` | 1024 × 500 |
+| スマートフォンのスクリーンショット（日本語） | `ja-1-rainbow-bridge-night.png` 〜 `ja-6-routes.png`（6 枚） | 1920 × 1080 |
+| スマートフォンのスクリーンショット（英語） | `en-1-rainbow-bridge-night.png` 〜 `en-6-routes.png`（6 枚） | 1920 × 1080 |
 
-スクリーンショットの内容（ゲームの画面は日本語だけなので、英語の掲載情報にも同じ画像を使います）
+スクリーンショットの内容（英語版 `en-*` は同じ場面を英語の画面で撮影。英語の掲載情報には `en-*` と `feature-graphic-en.png` を使います）
 
 1. `ja-1-rainbow-bridge-night.png` … 夜のレインボーブリッジ（虹色に光る主ケーブル）
 2. `ja-2-national-stadium.png` … 外苑を走る昼の 4 号新宿線。「右手に 国立競技場」の案内とテックジムのアドバルーン
@@ -69,6 +71,7 @@ Play Console の「ストアの掲載情報」に貼り付けて使います。A
 ・鍵のかかったコースも、広告を見ればすぐに走れる
 
 ■ その他
+・日本語と英語に対応（トップ画面で切り替え）
 ・オフラインでも遊べる（広告・シェアは通信が必要）
 ・結果を友だちにシェア
 
@@ -126,7 +129,7 @@ You always start last of 12 cars. Overtake on elevated highways, draft through t
 ■ FEATURES
 • Plays offline (ads and sharing need a connection)
 • Share your results with friends
-• Japanese on-screen text
+• Play in English or Japanese
 
 Road data © OpenStreetMap contributors (ODbL) / Building data processed from Project PLATEAU (MLIT, Japan)
 This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).

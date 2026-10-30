@@ -275,3 +275,11 @@ body.app .overlay { padding-bottom: 64px; }
   #legal { margin-top: 10px; }
   .t-wrap { padding-top: 12px; }
 }
+/* 言語の切り替え (トップ画面) */
+#langs { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+#langs button { padding: 6px 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.3); background: rgba(14,20,30,0.85); color: #cfd8e3; font-weight: 700; font-size: 14px; }
+#langs button.sel { background: #fff; color: #10151c; border-color: #fff; }
+/* 英語は文字が長いので、テロップの字間をつめ、名所の案内は折り返す */
+html[lang="en"] .t-main { letter-spacing: 0.04em; font-size: clamp(26px, 4.6vw, 52px); }
+html[lang="en"] .t-sub { letter-spacing: 0.06em; }
+html[lang="en"] #announce { white-space: normal; width: max-content; max-width: min(640px, calc(100vw - 32px)); text-align: center; }

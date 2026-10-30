@@ -41,7 +41,7 @@ You always start last of 12 cars. Overtake on elevated highways, draft through t
 ■ FEATURES
 • Plays offline (ads and sharing need a connection)
 • Share your results with friends
-• Japanese on-screen text
+• Play in English or Japanese
 
 Road data © OpenStreetMap contributors (ODbL) / Building data processed from Project PLATEAU (MLIT, Japan)
 This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).

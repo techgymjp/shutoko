@@ -9,6 +9,8 @@ import { Effects } from './effects.js';
 import { Traffic } from './traffic.js';
 import { Sound } from './audio.js';
 import { Ads } from './ads.js';
+import { I18N } from './i18n.js';
+const tr = I18N.t, nm = I18N.name;
 
 // ---------------- 定数 ----------------
 const KMH = 3.6;
@@ -32,13 +34,13 @@ const ERS_SEC = 8;           // ERS 1 本ぶんで全開にできる秒数
 // band: 走っていて心地よい順位の範囲 (0 = 先頭, 1 = 最後尾)。この範囲だと ERS がよく溜まり、
 // 前に出すぎるとマシンが熱を持って回生できない。leadPen: 先頭の重圧で下がる最高速の割合
 const MACHINES = {
-  nige: { name: '逃げ', vmax: 350, accel: 1.08, grip: 29, ers: 0.5, ersPow: 0.07, band: [0, 0.05], leadPen: 0.05,
+  nige: { key: 'mNige', vmax: 350, accel: 1.08, grip: 29, ers: 0.5, ersPow: 0.07, band: [0, 0.05], leadPen: 0.05,
     desc: '先頭で風を受けても落ちにくい。ERSは短い。スタートから前へ出て押し切る。' },
-  senko: { name: '先行', vmax: 344, accel: 1.04, grip: 28, ers: 0.8, ersPow: 0.09, band: [0.08, 0.3], leadPen: 0.1,
+  senko: { key: 'mSenko', vmax: 344, accel: 1.04, grip: 28, ers: 0.8, ersPow: 0.09, band: [0.08, 0.3], leadPen: 0.1,
     desc: '2〜4番手が心地よい。前の集団で風よけを使い、残り1kmで抜け出す。' },
-  sashi: { name: '差し', vmax: 338, accel: 1.0, grip: 27, ers: 1.1, ersPow: 0.11, band: [0.35, 0.65], leadPen: 0.12,
+  sashi: { key: 'mSashi', vmax: 338, accel: 1.0, grip: 27, ers: 1.1, ersPow: 0.11, band: [0.35, 0.65], leadPen: 0.12,
     desc: '中団（5〜8番手）でERSを溜め、ゴール前で一気に差す。' },
-  oikomi: { name: '追込', vmax: 332, accel: 0.97, grip: 26, ers: 1.6, ersPow: 0.13, band: [0.7, 1], leadPen: 0.14,
+  oikomi: { key: 'mOikomi', vmax: 332, accel: 0.97, grip: 26, ers: 1.6, ersPow: 0.13, band: [0.7, 1], leadPen: 0.14,
     desc: '後方で我慢するほどERSが満ちる。最後の直線で大外からまくる。' },
 };
 const MACHINE_KEYS = Object.keys(MACHINES);
@@ -152,13 +154,13 @@ function buildTitle() {
     el.innerHTML = `
       <div class="cc-no">${i + 1}</div>
       <div class="cc-body">
-        <div class="cc-title">${c.title}</div>
-        <div class="cc-sub">${c.sub}</div>
-        ${c.note ? `<div class="cc-note">${c.note}</div>` : ''}
+        <div class="cc-title">${nm(c.title)}</div>
+        <div class="cc-sub">${nm(c.sub)}</div>
+        ${c.note ? `<div class="cc-note">${nm(c.note)}</div>` : ''}
       </div>
-      <div class="cc-km">${!c.playable ? '<span>準備中</span>' : open ? '<b>PLAY</b>' : '<em>🔒</em><span>広告で解放</span>'}${c.km ? `<small>${c.km}km</small>` : ''}</div>`;
+      <div class="cc-km">${!c.playable ? `<span>${tr('soon')}</span>` : open ? '<b>PLAY</b>' : `<em>🔒</em><span>${tr('adUnlock')}</span>`}${c.km ? `<small>${c.km}km</small>` : ''}</div>`;
     el.addEventListener('click', () => {
-      if (!c.playable) { flashMsg('このルートは準備中です'); return; }
+      if (!c.playable) { flashMsg(tr('notReady')); return; }
       selected = i;
       buildTitle();
     });
@@ -169,13 +171,13 @@ function buildTitle() {
   }
   $('driver-name').value = driverName;
   const locked = !isUnlocked(selected);
-  $('btn-start').textContent = locked ? '📺 広告を見てスタート' : 'スタート';
+  $('btn-start').textContent = tr(locked ? 'adStart' : 'start');
   $('btn-start').classList.toggle('ad', locked);
   $('lock-note').hidden = !locked;
-  if (locked) $('lock-note').textContent = `「${COURSES[selected - 1].title}」を完走すると鍵が開きます。広告を最後まで見れば、今すぐこのコースを走れます。`;
+  if (locked) $('lock-note').textContent = tr('lockNote', { t: nm(COURSES[selected - 1].title) });
   const pr = profile();
   const best = pr.best[COURSES[selected].id];
-  $('best').textContent = pr.races ? `戦績 ${pr.races}戦 ${pr.wins}勝` + (best ? `　ベスト ${fmt(best.time)}（${best.pos}位）` : '') : '';
+  $('best').textContent = pr.races ? tr('record', { r: pr.races, w: pr.wins }) + (best ? tr('bestRec', { t: fmt(best.time), p: I18N.pos(best.pos) }) : '') : '';
 }
 for (const b of document.querySelectorAll('#themes button')) {
   b.addEventListener('click', () => { theme = b.dataset.t; store.set('theme', theme); buildTitle(); });
@@ -216,11 +218,11 @@ $('btn-share').addEventListener('click', async () => {
   if (!G || !G.shareText) return;
   // アプリでは Android の共有メニュー
   if (plugin('Share')) {
-    try { await plugin('Share').share({ title: '首都高グランプリ', text: G.shareText, url: SHARE_URL }); } catch { /* キャンセル */ }
+    try { await plugin('Share').share({ title: tr('appName'), text: G.shareText, url: SHARE_URL }); } catch { /* キャンセル */ }
     return;
   }
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-    try { await navigator.share({ title: '首都高グランプリ', text: G.shareText, url: SHARE_URL }); return; } catch { /* キャンセル */ return; }
+    try { await navigator.share({ title: tr('appName'), text: G.shareText, url: SHARE_URL }); return; } catch { /* キャンセル */ return; }
   }
   const u = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(G.shareText) + '&url=' + encodeURIComponent(SHARE_URL);
   window.open(u, '_blank', 'noopener');
@@ -229,9 +231,9 @@ $('btn-copy').addEventListener('click', async () => {
   if (!G || !G.shareText) return;
   try {
     await navigator.clipboard.writeText(G.shareText + ' ' + SHARE_URL);
-    flashMsg('結果をコピーしました');
+    flashMsg(tr('copied'));
   } catch {
-    flashMsg('コピーできませんでした');
+    flashMsg(tr('copyFail'));
   }
 });
 $('btn-mute').addEventListener('click', () => toggleMute());
@@ -283,7 +285,7 @@ function showScreen(name) {
 }
 function buildTop() {
   const pr = profile();
-  $('top-best').textContent = pr.races ? `${driverName || 'YOU'}　戦績 ${pr.races}戦 ${pr.wins}勝` : '';
+  $('top-best').textContent = pr.races ? `${driverName || 'YOU'}　` + tr('record', { r: pr.races, w: pr.wins }) : '';
 }
 // バナー広告 (アプリのみ): トップ・あそびかた・ルート選択・ポーズ・結果画面だけ。レース中は操作ボタンと重なるので出さない
 function updateBanner() {
@@ -342,13 +344,13 @@ async function startSelected() {
   unlocking = true;
   const btn = $('btn-start');
   btn.disabled = true;
-  btn.textContent = '読み込み中…';
+  btn.textContent = tr('loading');
   const result = await Ads.showRewarded();
   unlocking = false;
   btn.disabled = false;
   buildTitle();
   if (result === 'rewarded') { closeOverlays(); startRace(); return; }
-  flashMsg(result === 'skipped' ? '広告を最後まで見ると、このコースを走れます' : '広告を読み込めませんでした。少しあとでお試しください');
+  flashMsg(tr(result === 'skipped' ? 'adSkipped' : 'adFail'));
 }
 
 // ---------------- レースの準備 ----------------
@@ -442,11 +444,11 @@ function startRace() {
   // スタートシグナル
   $('lights').hidden = false;
   for (const l of document.querySelectorAll('#lights i')) l.className = '';
-  $('grid-msg').innerHTML = `スタート位置 <b>${playerSlot + 1}</b>番グリッド`;
+  $('grid-msg').innerHTML = tr('gridMsg', { n: playerSlot + 1 });
   $('grid-msg').classList.add('show');
   setTimeout(() => $('grid-msg').classList.remove('show'), 3500);
-  showTelop(def.sections?.[0]?.main || def.title, `${playerSlot + 1}番グリッドからスタート`, def.en);
-  $('hud-course').textContent = def.title;
+  showTelop(nm(def.sections?.[0]?.main || def.title), tr('gridTelop', { n: playerSlot + 1 }), I18N.en ? '' : def.en);
+  $('hud-course').textContent = nm(def.title);
 }
 
 // ---------------- ミニマップ ----------------
@@ -507,7 +509,7 @@ function drawMinimap() {
     c.at(m.s, 0, p);
     const [x, y] = T(p.x, p.z);
     g.fillStyle = m.kind === 'jct' ? '#7fe0ff' : '#ffd23a';
-    g.fillText(m.name, x + 10, y + 5);
+    g.fillText(nm(m.name), x + 10, y + 5);
   }
   // ライバル (横位置も反映。重なっても見えるよう縁取り)
   for (const r of G.racers) {
@@ -599,8 +601,8 @@ function hitFx(power, pos, vel, kind, color = 0xf3f3f3) {
   if (navigator.vibrate) try { navigator.vibrate(Math.round(40 + power * 160)); } catch { /* 振動できない端末 */ }
   if (power > 0.55) G.slowmo = 0.45;
   const words = kind === 'wall'
-    ? (power > 0.6 ? ['ガシャーン!!', '壁にヒット!!'] : ['ガリガリッ!', '壁に接触!'])
-    : (power > 0.6 ? ['ドカン!!', '激突!!', 'ガツン!!'] : ['接触!', 'コツン!', 'バチッ!']);
+    ? tr(power > 0.6 ? 'hitWallBig' : 'hitWall').split('|')
+    : tr(power > 0.6 ? 'hitCarBig' : 'hitCar').split('|');
   showAlert(words[Math.floor(Math.random() * words.length)], power > 0.6 ? 'big' : '', 900);
   G.hits++;
   G.hitLog.push(`${kind}:${power.toFixed(2)}@${Math.round(G.player.s)}`);
@@ -641,7 +643,7 @@ function updatePlayer(dt) {
   } else if (G.leadT > LEAD_GRACE && G.penCd <= 0 && remain > FINAL_FREE) {
     G.penalty = LEAD_PEN_T;
     G.penCount = (G.penCount || 0) + 1;
-    showAlert('先頭の重圧! ペースダウン', 'warn', 1600);
+    showAlert(tr('penAlert'), 'warn', 1600);
   }
   const penK = G.penalty > 0 ? 1 - M.leadPen : 1;
   // ERS: 押している間だけ最高速と加速が上がる。風よけ (スリップストリーム) とブレーキで溜まる
@@ -872,8 +874,8 @@ function updateAttack(dt) {
   if (!best) return;
   best.attack = ATTACK_T;
   G.attackCd = ATTACK_GAP;
-  showAlert(`⚡ ${best.team.name} がオーバーテイクモード!`, 'warn', 1800);
-  radio(`後ろの${best.team.name}がERSを全開にした! 来るぞ!`);
+  showAlert(tr('otMode', { n: best.team.name }), 'warn', 1800);
+  radio(tr('otRadio', { n: best.team.name }));
   Sound.ers();
 }
 
@@ -900,7 +902,7 @@ function rub(a, b, ds, dx) {
     G.scraping = 0.15;
     G.shake = Math.max(G.shake, 0.1);
     G.rubT = (G.rubT || 0);
-    if (G.t - G.rubT > 2.5) { showAlert('スレスレ!', '', 600); G.rubT = G.t; }
+    if (G.t - G.rubT > 2.5) { showAlert(tr('close'), '', 600); G.rubT = G.t; }
   }
 }
 
@@ -1039,7 +1041,7 @@ function checkFinish() {
       if (r.player) {
         G.finishT = 0;
         Sound.fanfare();
-        showTelop('FINISH', `${r.rank}位でゴール！  ${fmt(r.time)}`, 'YOGA');
+        showTelop('FINISH', tr('finish', { p: I18N.pos(r.rank), t: fmt(r.time) }), I18N.en ? '' : 'YOGA');
       }
     }
   }
@@ -1057,45 +1059,46 @@ function showResult() {
   let isBest = false;
   if (!best || P.time < best.time) { pr.best[G.def.id] = { time: P.time, pos: P.rank }; isBest = true; }
   $('res-pos').textContent = P.rank;
+  $('res-pos-u').textContent = I18N.en ? I18N.pos(P.rank).slice(String(P.rank).length) : '位';
   $('res-pos').className = P.rank <= 3 ? 'podium p' + P.rank : '';
-  $('res-time').textContent = fmt(P.time) + (isBest ? '  ★ベスト更新' : '');
+  $('res-time').textContent = fmt(P.time) + (isBest ? tr('newBest') : '');
   $('res-stats').innerHTML = `
-    <span>スタート <b>${P.slot + 1}番グリッド</b></span>
-    <span>オーバーテイク <b>${G.overtakes}</b></span>
-    <span>接触 <b>${G.hits}</b>回</span>
-    <span>最高速 <b>${Math.round(G.best * KMH)}</b>km/h</span>`;
+    <span>${tr('statGrid', { n: P.slot + 1 })}</span>
+    <span>${tr('statOt', { n: G.overtakes })}</span>
+    <span>${tr('statHit', { n: G.hits })}</span>
+    <span>${tr('statTop', { n: Math.round(G.best * KMH) })}</span>`;
   const opened = markCleared(G.def.id);
   $('res-unlock').hidden = !opened;
-  if (opened) $('res-unlock').textContent = `🔓 次のコース「${opened.title}」の鍵が開いた！`;
+  if (opened) $('res-unlock').textContent = tr('unlocked', { t: nm(opened.title) });
   // 最終順位 (まだ走っている車は予想タイム)
   const rows = [...G.racers].map((r) => ({ r, t: r.finished ? r.time : G.raceT + (G.goalS - r.s) / Math.max(30, r.v) }))
     .sort((a, b) => a.t - b.t);
   // チーフエンジニアのコメント (ダービージョッキーの騎手コメントにあたる)
   const tot = G.fitT.ahead + G.fitT.fit + G.fitT.behind || 1;
   const notes = [];
-  if (G.fitT.ahead / tot > 0.35) notes.push('道中ずっと前に出すぎて、マシンが熱を持っていた。もっと後ろで脚を溜めたほうがいいかもしれない。');
-  else if (G.fitT.ahead / tot > 0.15) notes.push('前半、少し前に出すぎてバッテリーが苦しそうだった。');
-  if (G.fitT.fit / tot > 0.5) notes.push('マシンが気持ちよく走れる位置だった。この位置取りは合っている。');
-  if (G.fitT.behind / tot > 0.5) notes.push('後ろにいる時間が長かった。マシンはもう少し前を走りたがっていたかもしれない。');
-  if (G.ers / G.M.ers > 0.3) notes.push('ゴールしてもERSがたっぷり残っていた。仕掛けが遅かったか、使い切れていない。');
-  if (G.ersEmptyAt != null && G.ersEmptyAt > 1500) notes.push(`ゴールまで${(G.ersEmptyAt / 1000).toFixed(1)}kmでERSを使い切った。仕掛けが早すぎた。`);
-  if ((G.penCount || 0) >= 2) notes.push('先頭に立つのが早すぎて、何度も「先頭の重圧」に捕まった。');
+  if (G.fitT.ahead / tot > 0.35) notes.push(tr('nAhead'));
+  else if (G.fitT.ahead / tot > 0.15) notes.push(tr('nAhead2'));
+  if (G.fitT.fit / tot > 0.5) notes.push(tr('nFit'));
+  if (G.fitT.behind / tot > 0.5) notes.push(tr('nBehind'));
+  if (G.ers / G.M.ers > 0.3) notes.push(tr('nErsLeft'));
+  if (G.ersEmptyAt != null && G.ersEmptyAt > 1500) notes.push(tr('nErsEarly', { d: (G.ersEmptyAt / 1000).toFixed(1) }));
+  if ((G.penCount || 0) >= 2) notes.push(tr('nPen'));
   pr.races++;
   if (P.rank === 1) {
     pr.wins++;
     if (G.hidden) {
       pr.revealed = true;
-      notes.unshift(`優勝！ このマシンの脚質は「${G.M.name}」だった！`);
+      notes.unshift(tr('nWin', { m: tr(G.M.key) }));
     }
   }
   saveProfile(pr);
-  if (!notes.length) notes.push('悪くない走りだった。次は仕掛けどころを変えてみよう。');
-  $('res-notes').innerHTML = `<div class="n-head">📻 チーフエンジニア${G.hidden ? '' : `（このマシンは「${G.M.name}」）`}</div>` + notes.map((n) => `<p>${n}</p>`).join('');
+  if (!notes.length) notes.push(tr('nOk'));
+  $('res-notes').innerHTML = `<div class="n-head">${tr('engineer')}${G.hidden ? '' : tr('machineIs', { m: tr(G.M.key) })}</div>` + notes.map((n) => `<p>${n}</p>`).join('');
   $('res-table').innerHTML = rows.map(({ r, t }, i) => `
     <tr class="${r.player ? 'me' : ''}"><td>${i + 1}</td>
     <td><i style="background:#${r.team.body.toString(16).padStart(6, '0')}"></i>${r.player ? esc(nameOf(r)) + ' (' + r.team.name + ')' : r.team.name}</td>
     <td>${fmt(t)}</td></tr>`).join('');
-  G.shareText = `首都高グランプリ「${G.def.title}」で${P.rank}位！ タイム ${fmt(P.time)}（12番グリッドから${G.overtakes}台抜き） #首都高グランプリ`;
+  G.shareText = tr('shareText', { c: nm(G.def.title), p: I18N.pos(P.rank), t: fmt(P.time), o: G.overtakes });
   $('result').hidden = false;
   Sound.silence();
   updateBanner();
@@ -1193,7 +1196,7 @@ function updateHUD(dt) {
   // 奥の手の車が迫っている時は、縮小図の上に矢印
   const atk = G.racers.find((r) => r.attack > 0);
   $('atk').classList.toggle('on', !!atk && G.mode === 'race');
-  if (atk) $('atk').textContent = `⚡ ${atk.team.name} 接近中  ${Math.max(0, P.s - atk.s).toFixed(0)}m`;
+  if (atk) $('atk').textContent = tr('atk', { n: atk.team.name, m: Math.max(0, P.s - atk.s).toFixed(0) });
   // トップの時は後続との差を出し、迫ってきたら知らせる
   const behind = G.order && G.rank === 1 && !P.finished ? G.order[1] : null;
   $('row-behind').hidden = !behind;
@@ -1202,7 +1205,7 @@ function updateHUD(dt) {
     $('hud-behind').textContent = '+' + timeGap(P, behind).toFixed(1);
     G.warnT = (G.warnT || 0) - dt;
     if (gapM < 25 && G.warnT <= 0 && G.mode === 'race') {
-      showAlert('後続が迫る!', '', 900);
+      showAlert(tr('behindAlert'), '', 900);
       G.warnT = 6;
     }
   }
@@ -1212,7 +1215,7 @@ function updateHUD(dt) {
   // 次の出口・JCT
   const nxt = G.course.marks.find((m) => m.s > P.s + 5);
   if (nxt) {
-    $('hud-next').textContent = nxt.name;
+    $('hud-next').textContent = nm(nxt.name);
     $('hud-nextd').textContent = ((nxt.s - P.s) / 1000).toFixed(1) + 'km';
   }
   $('boost').classList.toggle('on', G.boost > 0.005 && G.mode === 'race');
@@ -1222,10 +1225,10 @@ function updateHUD(dt) {
     if (G.ers <= 0.001 && G.ersEmptyAt == null) G.ersEmptyAt = G.goalS - P.s;
     if (G.radioT <= 0) {
       let msg;
-      if (G.ers >= G.M.ers - 0.001 && G.fit !== 'ahead') msg = 'ERS満タンだ。いつでも行けるぞ';
-      else if (G.fit === 'ahead') msg = '前に出すぎだ! マシンが熱を持って回生できていない';
-      else if (G.fit === 'fit') msg = 'いいペースだ。バッテリーがよく溜まっている';
-      else msg = 'このあたりはマシンが少し退屈そうだ。もう少し前でもいい';
+      if (G.ers >= G.M.ers - 0.001 && G.fit !== 'ahead') msg = tr('rFull');
+      else if (G.fit === 'ahead') msg = tr('rAhead');
+      else if (G.fit === 'fit') msg = tr('rFit');
+      else msg = tr('rBehind');
       if (msg !== G.lastRadio || G.radioT < -20) {
         const el = $('radio');
         $('radio-msg').textContent = msg;
@@ -1245,7 +1248,7 @@ function updateHUD(dt) {
   if (G.penalty > 0) $('pen-t').textContent = Math.ceil(G.penalty);
   // 仕掛けどころの声かけ
   const left = G.goalS - P.s;
-  for (const [d, msg] of [[3000, '残り3km 位置取りを決めろ!'], [1500, '残り1.5km そろそろ仕掛けどころ!'], [600, 'ゴール前 全開! ERSを使い切れ!']]) {
+  for (const [d, msg] of [[3000, tr('call3')], [1500, tr('call15')], [600, tr('call06')]]) {
     if (G.mode === 'race' && left < d && !G.calls.has(d)) {
       G.calls.add(d);
       G.annQ.unshift({ text: msg, t: 3 });
@@ -1266,7 +1269,7 @@ function updateHUD(dt) {
   if (si !== G.sectionIdx) {
     if (G.sectionIdx !== -1 || si > 0) {
       const sc = secs[si];
-      if (sc) showTelop(sc.main, sc.sub, sc.en);
+      if (sc) showTelop(nm(sc.main), nm(sc.sub), I18N.en ? '' : sc.en);
     }
     G.sectionIdx = si;
   }
@@ -1293,7 +1296,7 @@ function updateHUD(dt) {
         const q = G.course.at(P.s);
         const dx = a.L.x - q.x, dz = a.L.z - q.z;
         const ang = Math.atan2(dx * q.lx + dz * q.lz, dx * q.tx + dz * q.tz) * 180 / Math.PI;
-        text = `${Math.abs(ang) < 20 ? '正面に' : ang > 0 ? '左手に' : '右手に'} ${a.L.spot}`;
+        text = tr(Math.abs(ang) < 20 ? 'ahead' : ang > 0 ? 'left' : 'right', { s: nm(a.L.spot) });
       }
       el.textContent = text;
       el.classList.add('show');
@@ -1417,6 +1420,10 @@ if (location.search.includes('debug')) {
     },
   };
 }
+// 言語 (トップ画面の 日本語 / English)
+for (const b of document.querySelectorAll('[data-lang]')) b.addEventListener('click', () => I18N.set(b.dataset.lang));
+I18N.onChange(() => { if (screen) showScreen(screen); });
+I18N.apply();
 resize();
 showScreen('top');
 requestAnimationFrame(frame);

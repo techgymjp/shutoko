@@ -23,14 +23,14 @@
     <div id="posbox" class="panel">
       <div class="pos"><small>POS</small><b id="hud-pos">1</b><span>/12</span></div>
       <div class="row"><span class="lbl">TIME</span><b id="hud-time">0:00.00</b></div>
-      <div class="row" id="row-behind" hidden><span class="lbl">後続</span><b id="hud-behind">+0.0</b><small>秒</small></div>
+      <div class="row" id="row-behind" hidden><span class="lbl" data-i18n="behind">後続</span><b id="hud-behind">+0.0</b><small data-i18n="sec">秒</small></div>
     </div>
     <div id="tower" class="panel"></div>
 
     <div id="infobox" class="panel">
       <div class="course" id="hud-course"></div>
-      <div class="row"><span class="lbl">次</span><b id="hud-next" class="nm">-</b><small id="hud-nextd"></small></div>
-      <div class="row"><span class="lbl">ゴールまで</span><b id="hud-remain">0.0</b><small>km</small></div>
+      <div class="row"><span class="lbl" data-i18n="next">次</span><b id="hud-next" class="nm">-</b><small id="hud-nextd"></small></div>
+      <div class="row"><span class="lbl" data-i18n="toGoal">ゴールまで</span><b id="hud-remain">0.0</b><small>km</small></div>
     </div>
     <canvas id="minimap" width="300" height="300"></canvas>
 
@@ -39,12 +39,12 @@
       <div class="sp"><b id="hud-speed">0</b><small>km/h</small></div>
       <div class="gear"><small>GEAR</small><b id="hud-gear">N</b></div>
     </div>
-    <div id="boost"><b>追い上げブースト</b> <span id="boost-v">+0</span><small>km/h</small></div>
+    <div id="boost"><b data-i18n="boost">追い上げブースト</b> <span id="boost-v">+0</span><small>km/h</small></div>
     <div id="slip">SLIPSTREAM</div>
     <div id="atk"></div>
     <div id="ersbox"><span class="lbl">ERS <small>Shift</small></span><div class="track"><i id="ers-cap"></i><b id="ers-bar"></b></div></div>
     <div id="radio"><div class="r-head">📻 TEAM RADIO</div><div id="radio-msg"></div></div>
-    <div id="pen">先頭の重圧 <b>ペースダウン</b> あと<span id="pen-t">0</span>秒</div>
+    <div id="pen" data-i18n="pen">先頭の重圧 <b>ペースダウン</b> あと<span id="pen-t">0</span>秒</div>
 
     <div id="lights" hidden><i></i><i></i><i></i><i></i><i></i></div>
     <div id="grid-msg"></div>
@@ -53,20 +53,20 @@
     <div id="announce"></div>
 
     <div id="topbtns">
-      <button id="btn-mute" aria-label="消音">🔊</button>
-      <button id="btn-pause" aria-label="一時停止">❚❚</button>
+      <button id="btn-mute" aria-label="消音" data-i18n-aria="mute">🔊</button>
+      <button id="btn-pause" aria-label="一時停止" data-i18n-aria="pause">❚❚</button>
     </div>
   </div>
 
   <div id="touch" hidden>
     <div class="tl">
       <button data-k="ers" class="ers" aria-label="ERS">ERS</button>
-      <button data-k="left" aria-label="左">◀</button>
-      <button data-k="right" aria-label="右">▶</button>
+      <button data-k="left" aria-label="左" data-i18n-aria="left">◀</button>
+      <button data-k="right" aria-label="右" data-i18n-aria="right">▶</button>
     </div>
     <div class="tr">
-      <button data-k="brake" class="brk" aria-label="ブレーキ">BRAKE</button>
-      <button data-k="accel" class="acc" aria-label="アクセル">ACCEL</button>
+      <button data-k="brake" class="brk" aria-label="ブレーキ" data-i18n-aria="brake">BRAKE</button>
+      <button data-k="accel" class="acc" aria-label="アクセル" data-i18n-aria="accel">ACCEL</button>
     </div>
   </div>
 
@@ -78,16 +78,17 @@
         <h1>首都高<span>グランプリ</span></h1>
         <div class="logo-en">SHUTOKO GRAND PRIX</div>
       </div>
-      <p class="catch">本物の首都高を 360km/h で駆け抜けろ。最後尾から逆転を狙う 3D レース</p>
+      <p class="catch" data-i18n="catch">本物の首都高を 360km/h で駆け抜けろ。最後尾から逆転を狙う 3D レース</p>
       <div id="top-best"></div>
+      <div id="langs"><button data-lang="ja">日本語</button><button data-lang="en">English</button></div>
       <div class="top-btns">
-        <button id="btn-play" class="primary">プレイ</button>
-        <button id="btn-howto">あそびかた</button>
+        <button id="btn-play" class="primary" data-i18n="play">プレイ</button>
+        <button id="btn-howto" data-i18n="howto">あそびかた</button>
       </div>
       <div id="legal">
         <span id="buildInfo"></span>
-        <a href="https://techgym.jp/privacy-policy/" target="_blank" rel="noopener">プライバシーポリシー</a>
-        <span id="adPrivacy" hidden>｜<a href="#" id="adPrivacyLink">広告の設定</a></span>
+        <a href="https://techgym.jp/privacy-policy/" target="_blank" rel="noopener" data-i18n="privacy">プライバシーポリシー</a>
+        <span id="adPrivacy" hidden>｜<a href="#" id="adPrivacyLink" data-i18n="adPrivacy">広告の設定</a></span>
       </div>
     </div>
   </div>
@@ -95,18 +96,18 @@
   <!-- あそびかた -->
   <div id="howto" class="screen" hidden>
     <div class="t-wrap">
-      <h2 class="scr-title">あそびかた</h2>
+      <h2 class="scr-title" data-i18n="howto">あそびかた</h2>
       <div class="help">
-        <p class="keys-pc"><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
-        <p class="keys-touch">右手の <b>ACCEL</b> でアクセル、<b>BRAKE</b> でブレーキ、左手の <b>◀ ▶</b> でハンドル。<b>ERS</b> ボタンを押している間、溜めた電気で一気に加速（末脚）。右上の <b>❚❚</b> で一時停止。</p>
-        <p><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。前の車の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。</p>
-        <p>……ただし、マシンにもそれぞれ<b>クセ</b>があるようです。前で引っぱるのが好きなマシン、後ろでじっと力を溜めるマシン——。チーム無線に耳を傾け、レース後のエンジニアの言葉をヒントに、<b>あなたのマシンに合った走り方</b>を見つけてください。</p>
-        <p>急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
-        <p class="app-only">コースを完走すると、<b>次のコースの鍵</b>が開きます。鍵のかかったコースも、<b>広告を見れば</b>そのレースを走れます。</p>
+        <p class="keys-pc" data-i18n="keysPc"><kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> アクセル　<kbd>↓</kbd>/<kbd>S</kbd> ブレーキ　<kbd>←</kbd><kbd>→</kbd> ハンドル　<kbd>Shift</kbd>/<kbd>E</kbd> ERS（末脚）　<kbd>P</kbd> 一時停止　<kbd>M</kbd> 消音</p>
+        <p class="keys-touch" data-i18n="keysTouch">右手の <b>ACCEL</b> でアクセル、<b>BRAKE</b> でブレーキ、左手の <b>◀ ▶</b> でハンドル。<b>ERS</b> ボタンを押している間、溜めた電気で一気に加速（末脚）。右上の <b>❚❚</b> で一時停止。</p>
+        <p data-i18n="help1"><b>作戦がカギ。</b>12台の最後尾からスタート。トップに立つと、先頭は風よけがないので少しして<b>「先頭の重圧」で12秒間ペースダウン</b>し、後続に抜かれます（ゴール前500mからは起きません）。前の車の真後ろで風よけ（スリップストリーム）を使いながら<b>ERSを溜め</b>、ゴール間際で一気に差しましょう。</p>
+        <p data-i18n="help2">……ただし、マシンにもそれぞれ<b>クセ</b>があるようです。前で引っぱるのが好きなマシン、後ろでじっと力を溜めるマシン——。チーム無線に耳を傾け、レース後のエンジニアの言葉をヒントに、<b>あなたのマシンに合った走り方</b>を見つけてください。</p>
+        <p data-i18n="help3">急カーブはブレーキで！ ぶつかっても壊れず走り続けられます。</p>
+        <p class="app-only" data-i18n="help4">コースを完走すると、<b>次のコースの鍵</b>が開きます。鍵のかかったコースも、<b>広告を見れば</b>そのレースを走れます。</p>
       </div>
       <div class="scr-btns">
-        <button id="btn-howto-play" class="primary">プレイ</button>
-        <button id="btn-howto-back">トップへ戻る</button>
+        <button id="btn-howto-play" class="primary" data-i18n="play">プレイ</button>
+        <button id="btn-howto-back" data-i18n="backTop">トップへ戻る</button>
       </div>
     </div>
   </div>
@@ -115,58 +116,58 @@
   <div id="title" class="screen" hidden>
     <div class="t-wrap">
       <div class="sel-head">
-        <button id="btn-back-top" class="back">← トップ</button>
-        <h2 class="scr-title">ルートを選ぶ</h2>
+        <button id="btn-back-top" class="back" data-i18n="top">← トップ</button>
+        <h2 class="scr-title" data-i18n="selRoute">ルートを選ぶ</h2>
       </div>
       <div id="courses"></div>
       <div class="t-row name-row">
-        <div class="t-label">ドライバー名</div>
+        <div class="t-label" data-i18n="driver">ドライバー名</div>
         <input id="driver-name" maxlength="12" placeholder="YOU" autocomplete="off" enterkeyhint="done">
-        <small class="name-note">名前ごとに戦績を保存</small>
+        <small class="name-note" data-i18n="nameNote">名前ごとに戦績を保存</small>
       </div>
       <div class="t-row">
-        <div class="t-label">時間帯</div>
+        <div class="t-label" data-i18n="timeOfDay">時間帯</div>
         <div id="themes">
-          <button data-t="day">昼</button>
-          <button data-t="dusk">夕暮れ</button>
-          <button data-t="night">夜</button>
+          <button data-t="day" data-i18n="day">昼</button>
+          <button data-t="dusk" data-i18n="dusk">夕暮れ</button>
+          <button data-t="night" data-i18n="night">夜</button>
         </div>
       </div>
       <button id="btn-start">スタート</button>
       <div id="lock-note" hidden></div>
       <div id="best"></div>
-      <div class="t-credit">道路: © OpenStreetMap contributors（ODbL）　建物: 国土交通省 Project PLATEAU 3D都市モデル（東京都23区）を加工して作成</div>
+      <div class="t-credit" data-i18n="credit">道路: © OpenStreetMap contributors（ODbL）　建物: 国土交通省 Project PLATEAU 3D都市モデル（東京都23区）を加工して作成</div>
     </div>
   </div>
 
   <div id="toast"></div>
-  <div id="credit">© OpenStreetMap contributors / 国土交通省 PLATEAU</div>
+  <div id="credit" data-i18n="creditSmall">© OpenStreetMap contributors / 国土交通省 PLATEAU</div>
 
   <div id="pause" class="overlay" hidden>
     <div class="box">
-      <h2>一時停止</h2>
-      <button id="btn-resume">再開</button>
-      <button id="btn-retry">最初からやり直す</button>
-      <button id="btn-quit">タイトルへ</button>
+      <h2 data-i18n="paused">一時停止</h2>
+      <button id="btn-resume" data-i18n="resume">再開</button>
+      <button id="btn-retry" data-i18n="retry">最初からやり直す</button>
+      <button id="btn-quit" data-i18n="quit">タイトルへ</button>
     </div>
   </div>
 
   <div id="result" class="overlay" hidden>
     <div class="box wide">
       <div class="r-head">RESULT</div>
-      <div class="r-pos"><b id="res-pos">1</b><span>位</span></div>
+      <div class="r-pos"><b id="res-pos">1</b><span id="res-pos-u">位</span></div>
       <div id="res-time"></div>
       <div id="res-unlock" hidden></div>
       <div id="res-stats"></div>
       <div id="res-notes"></div>
       <table id="res-table"></table>
       <div class="r-share">
-        <button id="btn-share">シェアする</button>
-        <button id="btn-copy">結果をコピー</button>
+        <button id="btn-share" data-i18n="share">シェアする</button>
+        <button id="btn-copy" data-i18n="copy">結果をコピー</button>
       </div>
       <div class="r-btns">
-        <button id="btn-again">もう一度</button>
-        <button id="btn-title">タイトルへ</button>
+        <button id="btn-again" data-i18n="again">もう一度</button>
+        <button id="btn-title" data-i18n="quit">タイトルへ</button>
       </div>
     </div>
   </div>

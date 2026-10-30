@@ -8,7 +8,7 @@ Google Play 用は `../listing.md` です。
 | 欄 | ファイル | サイズ |
 | --- | --- | --- |
 | 「Dynamic Island 搭載 iPhone（中型ディスプレイ）」のスクリーンショット（日本語） | `6.3inch/ja-1-rainbow-bridge-night.png` 〜 `ja-4-rainbow-bridge-day.png` | 2622 × 1206 |
-| 同（英語） | `6.3inch/en-1-…` 〜 `en-4-…`（ゲームの画面は日本語だけ。撮影用の名所案内だけ外した） | 2622 × 1206 |
+| 同（英語） | `6.3inch/en-1-…` 〜 `en-4-…`（英語の画面で撮影） | 2622 × 1206 |
 | 「ヘッダと検索結果」のヘッダ | `appstore-header-3840x1646.png` | 3840 × 1646 |
 | 「ヘッダと検索結果」の検索結果 | `appstore-search-3840x2560.png`（ヘッダを入れたらこれも入れる） | 3840 × 2560 |
 
@@ -70,6 +70,7 @@ Google Play 用は `../listing.md` です。
 ・鍵のかかったコースも、広告を見ればすぐに走れる
 
 ■ その他
+・日本語と英語に対応（トップ画面で切り替え）
 ・オフラインでも遊べる（広告・シェアは通信が必要）
 ・結果を友だちにシェア
 
@@ -139,7 +140,7 @@ You always start last of 12 cars. Overtake on elevated highways, draft through t
 ■ FEATURES
 • Plays offline (ads and sharing need a connection)
 • Share your results with friends
-• Japanese on-screen text
+• Play in English or Japanese
 
 Road data © OpenStreetMap contributors (ODbL) / Building data processed from Project PLATEAU (MLIT, Japan)
 This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
