@@ -153,9 +153,17 @@ This is a fan-made game and is not affiliated with Shutoko (Metropolitan Express
 
 ```
 <ja-JP>
-首都高グランプリ、はじめての公開です。東京23区の首都高 16 コースを走れます。
+首都高グランプリ、はじめての公開です。
+・東京23区の首都高 16 コースを、12台の最後尾から360km/hで駆け抜けるレース
+・名所の案内、昼・夕暮れ・夜の3つの時間帯
+・コースを完走すると次のコースの鍵が開く
+・日本語と英語に対応（トップ画面で切り替え）
 </ja-JP>
 <en-US>
-First release of Shutoko GP — race 16 courses on Tokyo's Shuto Expressway.
+First release of Shutoko GP!
+• Race 16 courses on Tokyo's Shuto Expressway at 360 km/h, starting last of 12 cars
+• Landmark callouts, plus day, dusk and night
+• Finish a course to unlock the next one
+• Play in English or Japanese (switch on the top screen)
 </en-US>
 ```
