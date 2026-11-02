@@ -8,6 +8,7 @@ const HTML_EN = {
   play: 'PLAY',
   howto: 'HOW TO PLAY',
   privacy: 'Privacy Policy',
+  getItOn: 'GET IT ON',
   adPrivacy: 'Ad settings',
   keysPc: '<kbd>↑</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> Accelerate　<kbd>↓</kbd>/<kbd>S</kbd> Brake　<kbd>←</kbd><kbd>→</kbd> Steer　<kbd>Shift</kbd>/<kbd>E</kbd> ERS boost　<kbd>P</kbd> Pause　<kbd>M</kbd> Mute',
   keysTouch: 'Right thumb: <b>ACCEL</b> and <b>BRAKE</b>. Left thumb: <b>◀ ▶</b> to steer. Hold <b>ERS</b> to unleash your stored battery for a burst of speed. <b>❚❚</b> at the top right pauses.',

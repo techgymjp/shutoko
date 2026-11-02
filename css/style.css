@@ -283,3 +283,10 @@ body.app .overlay { padding-bottom: 64px; }
 html[lang="en"] .t-main { letter-spacing: 0.04em; font-size: clamp(26px, 4.6vw, 52px); }
 html[lang="en"] .t-sub { letter-spacing: 0.06em; }
 html[lang="en"] #announce { white-space: normal; width: max-content; max-width: min(640px, calc(100vw - 32px)); text-align: center; }
+/* Web 版だけ: アプリのダウンロード (アプリの中では出さない) */
+#stores { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+body.app #stores { display: none; }
+.store-link { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 10px; border-radius: 9px; background: #000; border: 1px solid #a6a6a6; color: #fff; text-decoration: none; text-align: left; line-height: 1.1; }
+.store-link svg { width: 26px; height: 26px; }
+.store-link small { display: block; font-size: 10px; letter-spacing: 0.04em; }
+.store-link b { display: block; font-size: 18px; font-weight: 700; }
