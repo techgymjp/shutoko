@@ -5,10 +5,11 @@
   "description": "首都高グランプリ 首都高を走る 3D レースゲーム（Web / Android / iOS）",
   "scripts": {
     "build": "node scripts/build-web.js",
-    "android:sync": "npm run build && npx cap sync android",
+    "build:app": "APP_BUILD=1 node scripts/build-web.js",
+    "android:sync": "npm run build:app && npx cap sync android",
     "android:open": "npx cap open android",
-    "ios:sync": "npm run build && npx cap sync ios",
-    "ios:release": "ADMOB_MODE=production npm run build && npx cap sync ios",
+    "ios:sync": "npm run build:app && npx cap sync ios",
+    "ios:release": "ADMOB_MODE=production npm run build:app && npx cap sync ios",
     "ios:open": "npx cap open ios"
   },
   "dependencies": {

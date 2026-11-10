@@ -78,7 +78,11 @@ const camera = new THREE.PerspectiveCamera(72, 1, 0.12, 20000);
 let G = null; // 1回のレースの状態
 let theme = store.get('theme', 'day');
 let selected = 0;
-const DEBUG = location.search.includes('debug');
+// テスト用のフック (?debug) は Web 版だけ。アプリには入れない
+let DEBUG = false;
+// web-only:start
+DEBUG = location.search.includes('debug');
+// web-only:end
 let driverName = store.get('name', '');
 const nameOf = (r) => (r.player ? (driverName || 'YOU') : r.team.name);
 // ドライバーごとのデータ (名前ごとに保存)。脚質は最初にランダムで決まり、隠れている。1位になると判明する
@@ -1408,8 +1412,9 @@ function render() {
 }
 
 // ---------------- 起動 ----------------
+// web-only:start
 // ?debug を付けると、テスト用にシミュレーションを外から進められる
-if (location.search.includes('debug')) {
+if (DEBUG) {
   window.dbg = {
     get G() { return G; },
     input,
@@ -1420,6 +1425,7 @@ if (location.search.includes('debug')) {
     },
   };
 }
+// web-only:end
 // 言語 (トップ画面の 日本語 / English)
 for (const b of document.querySelectorAll('[data-lang]')) b.addEventListener('click', () => I18N.set(b.dataset.lang));
 I18N.onChange(() => { if (screen) showScreen(screen); });
