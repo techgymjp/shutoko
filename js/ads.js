@@ -15,7 +15,7 @@ export const Ads = (() => {
       production: {
         interstitial: 'ca-app-pub-6411535997477460/6459015332',
         rewarded: 'ca-app-pub-6411535997477460/3832851999',
-        banner: 'ca-app-pub-6411535997477460/8349139516',
+        banner: 'ca-app-pub-6411535997477460/3528956431',
       },
     },
     ios: {
