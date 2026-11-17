@@ -35,6 +35,10 @@
         </provider>
     </application>
 
+    <!-- 横向き固定 (sensorLandscape) でも、横向きの画面を「必須」にしない。
+         必須のままだと Google Play で一部の端末 (Chromebook・PC 版 Google Play Games・Android XR など) に配信されない -->
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
