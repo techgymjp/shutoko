@@ -131,18 +131,24 @@ Google の「Apple の App Store のデータ開示要件への準備」（AdMob
 - トラッキングに使用：デバイス ID と広告データは「する」
 - アプリ自体は個人情報を集めない（ドライバー名・戦績・コースの鍵は端末の中だけに保存）
 
-**審査へのメモ（App Review に関する情報の「メモ」に貼る。初回に「Guideline 2.1 - Information Needed」が来たら、同じ文を返信し、4 章で撮った録画を添付する）**
+**審査へのメモ（App Review に関する情報の「メモ」に貼る。初回に「Guideline 2.1 - Information Needed」が来たら、同じ文を返信し、4 章で撮った録画を添付する。4・5 は Guideline 5.6 と 4.3 でリジェクトされたときの説明。ビルド 113 から）**
 
 ```
-1. Purpose and audience: Shutoko GP is a free 3D racing game for ages 13+. Players race formula cars on a recreation of Tokyo's urban expressway built from open data (OpenStreetMap and Japan's PLATEAU 3D city models).
+1. Purpose and audience: Shutoko GP is a free 3D racing game for ages 13+. Players race formula cars on Tokyo's real Shuto Expressway, recreated from open data: roads from OpenStreetMap and buildings from Project PLATEAU, the official 3D city models of Japan's Ministry of Land, Infrastructure, Transport and Tourism.
 
-2. How to use: No login or account is needed. Tap "プレイ" (Play), choose a route, and tap "スタート" (Start). Steer with ◀ ▶, use ACCEL / BRAKE on the right and ERS for a speed boost. All text in the game is Japanese.
+2. How to use: No login or account is needed. Tap PLAY, choose a route and tap START. Steer with the left buttons, use ACCEL and BRAKE on the right, and hold ERS for a burst of speed. The game supports English and Japanese (switch on the top screen).
 
-3. External services: Google AdMob (banner, interstitial and rewarded ads) with Google's consent form (UMP) and App Tracking Transparency. Rewarded ads are optional: watching one lets the player race a locked course once. No other services or in-app purchases.
+3. Courses and rewarded ads: Course 1 is always open. Finishing a course unlocks the next one. A locked course can also be raced right away by watching a rewarded ad. If an ad cannot be loaded, the race starts anyway, so every course is always reachable and no content depends on ad availability.
 
-4. Regional differences: None, except that the ad consent form appears only where required (e.g. EEA/UK).
+4. No hidden features (Guideline 5.6): The app has no hidden, remote-controlled or date-based features, and behaves the same during and after review for all users. Earlier builds contained code used only by our web version (a Google Play link and developer test hooks enabled by URL parameters). This build removes all of it, and our build process now fails if any web-only code remains.
 
-5. Regulated content / third-party material: The game is not in a regulated industry. Road shapes come from OpenStreetMap (ODbL) and buildings from Project PLATEAU by MLIT Japan (CC BY 4.0 compatible); both licenses allow commercial use and are credited in the app. This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
+5. Original app (Guideline 4.3): This is the only version of this game on the App Store, with no re-skinned or renamed copies. It has 16 courses across Tokyo's 23 wards (Rainbow Bridge, Bayshore Route, C1 Inner Circular, Yamate Tunnel and more) and over 150 real landmarks announced while racing. Its gameplay is unique: the player always starts last of 12 cars, the leader suffers "leader's pressure" (a temporary slowdown), players charge an ERS battery by drafting, and each machine has a hidden racing style revealed through team radio. Our other apps are different games that share only common open-source frameworks (Capacitor, three.js).
+
+6. External services: Google AdMob (banner, interstitial and rewarded ads) with Google's consent form (UMP) and App Tracking Transparency. No other services and no in-app purchases.
+
+7. Regional differences: None, except that the ad consent form appears only where required (e.g. EEA/UK).
+
+8. Third-party material: Road shapes come from OpenStreetMap (ODbL) and buildings from Project PLATEAU by MLIT Japan; both allow commercial use and are credited in the app. This is a fan-made game and is not affiliated with Shutoko (Metropolitan Expressway Co., Ltd.).
 ```
 
 入力が終わったら「審査用に追加」→「審査へ提出」。
