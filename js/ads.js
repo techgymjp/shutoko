@@ -192,7 +192,7 @@ export const Ads = (() => {
 
   return {
     get available() { return !!AdMob; },
-    get canReward() { return !!AdMob && has('rewarded'); },  // リワード広告(チート)を出せるか
+    get canReward() { return !!AdMob && has('rewarded'); },  // リワード広告を出せるか
     get showing() { return showing; },
     get privacyOptionsRequired() { return privacyRequired; },
     initDone,

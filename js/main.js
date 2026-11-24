@@ -78,7 +78,7 @@ const camera = new THREE.PerspectiveCamera(72, 1, 0.12, 20000);
 let G = null; // 1回のレースの状態
 let theme = store.get('theme', 'day');
 let selected = 0;
-// テスト用のフック (?debug) は Web 版だけ。アプリには入れない
+// Web 版のテスト用 (アプリ版のビルドでは下の範囲ごと取り除かれる)
 let DEBUG = false;
 // web-only:start
 DEBUG = location.search.includes('debug');
@@ -353,8 +353,10 @@ async function startSelected() {
   unlocking = false;
   btn.disabled = false;
   buildTitle();
-  if (result === 'rewarded') { closeOverlays(); startRace(); return; }
-  flashMsg(tr(result === 'skipped' ? 'adSkipped' : 'adFail'));
+  // 広告を最後まで見たとき、または広告を出せなかったとき (通信できない・在庫がない) は走れる。
+  // 広告の都合でコースに入れないことがないように (どのコースも、いつでも遊べる)
+  if (result !== 'skipped') { closeOverlays(); startRace(); return; }
+  flashMsg(tr('adSkipped'));
 }
 
 // ---------------- レースの準備 ----------------
@@ -389,8 +391,11 @@ function startRace() {
   const rivals = TEAMS.slice(1);
   // 脚質 (ミステリーマシンは隠れている)
   const pr = profile();
-  // テスト用: ?debug&style=sashi で脚質を指定できる
-  const force = DEBUG && new URLSearchParams(location.search).get('style');
+  let force = null;
+  // web-only:start
+  // テスト用: ?debug&style=sashi で脚質を指定できる (Web 版だけ)
+  if (DEBUG) force = new URLSearchParams(location.search).get('style');
+  // web-only:end
   const styleKey = MACHINES[force] ? force : pr.style;
   const hidden = !pr.revealed && !MACHINES[force];
   // いつも最後尾からスタート
@@ -1398,6 +1403,7 @@ function frame(now, noRender) {
 
 function render() {
   renderer.clear();
+  // web-only:start
   // デバッグ: 外から見るカメラ (dbg.freeCam = [x, y, z, 見る先 x, y, z])
   if (DEBUG && window.dbg?.freeCam) {
     const f = window.dbg.freeCam;
@@ -1406,6 +1412,7 @@ function render() {
     renderer.render(G.scene, camera);
     return;
   }
+  // web-only:end
   renderer.render(G.scene, camera);
   renderer.clearDepth();
   renderer.render(G.cockpit.scene, G.cockpit.camera);

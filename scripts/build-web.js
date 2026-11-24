@@ -24,7 +24,7 @@ if (process.env.APP_BUILD) {
   strip(path.join(out, 'index.html'), /[ \t]*<!-- web-only -->[\s\S]*?<!-- \/web-only -->\n?/g);
   for (const f of walk(path.join(out, 'js'))) if (f.endsWith('.js')) strip(f, /[ \t]*\/\/ web-only:start[\s\S]*?\/\/ web-only:end\n?/g);
   // 取り残しがあればビルドを止める
-  const bad = ['play.google.com', 'web-only', "includes('debug')", 'window.dbg ='];
+  const bad = ['play.google.com', 'web-only', "includes('debug')", 'window.dbg', 'location.search', 'freeCam'];
   for (const f of walk(out)) {
     if (!/\.(html|js|css)$/.test(f)) continue;
     const s = fs.readFileSync(f, 'utf8');
